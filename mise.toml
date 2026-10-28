@@ -1,0 +1,33 @@
+# Tool pins for this repository. `mise.lock` (plus .mise/locks/ for the
+# Python-based tools) is committed and records the checksums for the
+# platforms below; `just setup` installs from it without updating it. To bump
+# a pin, edit it here, run `just lock`, and commit the pin and the lock
+# together.
+[settings]
+lockfile = true
+
+[tools]
+# The build toolchain. go.mod's `go` directive stays the minimum language
+# version the module supports.
+go = "1.27.3"
+golangci-lint = "2.15.0"
+"aqua:securego/gosec" = "2.30.0"
+"go:golang.org/x/vuln/cmd/govulncheck" = "1.9.0"
+
+# The command interface, hooks and secret scanning.
+just = "1.59.0"
+pre-commit = "4.7.0"
+gitleaks = "8.30.1"
+actionlint = "1.7.12"
+
+# Commitizen is a Python CLI; mise installs it with uv into the pinned Python.
+python = "3.14.10"
+uv = "0.13.6"
+"pipx:commitizen" = "4.19.3"
+
+# The provider is published for both CLIs: docs generation and the acceptance
+# suite drive them.
+terraform = "1.17.0"
+opentofu = "1.13.2"
+"aqua:hashicorp/terraform-plugin-docs" = "0.25.0"
+goreleaser = "2.19.0"
