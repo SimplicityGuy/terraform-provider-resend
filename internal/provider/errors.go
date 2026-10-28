@@ -57,6 +57,10 @@ func isRetryableError(err error) bool {
 	return strings.Contains(msg, "something went wrong")
 }
 
+// after is the timer seam for retryOnRateLimit's backoff wait; tests replace it
+// so they need not wait out real exponential backoff.
+var after = time.After
+
 // retryOnRateLimit retries the given function when a retryable error occurs,
 // using exponential backoff. The Resend API allows 2 requests per second.
 func retryOnRateLimit[T any](ctx context.Context, fn func() (T, error)) (T, error) {
@@ -83,7 +87,7 @@ func retryOnRateLimit[T any](ctx context.Context, fn func() (T, error)) (T, erro
 		select {
 		case <-ctx.Done():
 			return result, ctx.Err()
-		case <-time.After(backoff):
+		case <-after(backoff):
 		}
 	}
 

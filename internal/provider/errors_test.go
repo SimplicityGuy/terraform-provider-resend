@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	resend "github.com/resend/resend-go/v3"
@@ -217,7 +218,24 @@ func TestRetryOnRateLimit_serverErrorThenSuccess(t *testing.T) {
 	}
 }
 
+// stubAfter replaces the retry timer seam with one that records the requested
+// backoffs and fires immediately, restoring the real timer on cleanup.
+func stubAfter(t *testing.T) *[]time.Duration {
+	t.Helper()
+	var got []time.Duration
+	orig := after
+	after = func(d time.Duration) <-chan time.Time {
+		got = append(got, d)
+		ch := make(chan time.Time, 1)
+		ch <- time.Time{}
+		return ch
+	}
+	t.Cleanup(func() { after = orig })
+	return &got
+}
+
 func TestRetryOnRateLimit_maxRetriesExhausted(t *testing.T) {
+	waits := stubAfter(t)
 	calls := 0
 	_, err := retryOnRateLimit(context.Background(), func() (string, error) {
 		calls++
@@ -229,18 +247,34 @@ func TestRetryOnRateLimit_maxRetriesExhausted(t *testing.T) {
 	if calls != maxRetries {
 		t.Errorf("expected %d calls, got %d", maxRetries, calls)
 	}
+	want := []time.Duration{1 * time.Second, 2 * time.Second, 4 * time.Second, 8 * time.Second, 16 * time.Second}
+	if len(*waits) != len(want) {
+		t.Fatalf("expected %d backoff waits, got %v", len(want), *waits)
+	}
+	for i, d := range want {
+		if (*waits)[i] != d {
+			t.Errorf("backoff %d: expected %v, got %v", i, d, (*waits)[i])
+		}
+	}
 }
 
 func TestRetryOnRateLimit_contextCancelled(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
+	orig := after
+	t.Cleanup(func() { after = orig })
+	// The timer never fires, so only cancellation can end the backoff wait.
+	after = func(time.Duration) <-chan time.Time { return nil }
 
 	calls := 0
 	_, err := retryOnRateLimit(ctx, func() (string, error) {
 		calls++
+		cancel()
 		return "", &resend.RateLimitError{Message: "rate limited"}
 	})
-	if err == nil {
-		t.Fatal("expected error")
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected context.Canceled, got %v", err)
+	}
+	if calls != 1 {
+		t.Errorf("expected 1 call before cancellation, got %d", calls)
 	}
 }
