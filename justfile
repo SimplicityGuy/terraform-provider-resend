@@ -45,9 +45,9 @@ lock:
     mise lock --platform linux-x64,macos-arm64
 
 # Offline: no Resend credentials and no API calls. The acceptance suite is `just testacc`.
-# The authoritative pre-merge gate: hooks (format, golangci-lint, actionlint), vet, gosec, unit tests, build, release config, secret scan.
+# The authoritative pre-merge gate: hooks (format, golangci-lint, actionlint), vet, gosec, unit tests, build, release config, secret scan, registry docs drift.
 [group('validate')]
-check: lint vet sec test build release-check secret-scan
+check: lint vet sec test build release-check secret-scan docs-check
 
 # Run every pre-commit hook over all files (gofmt/goimports, golangci-lint, actionlint, file hygiene, gitleaks on staged changes).
 [group('validate')]
@@ -120,11 +120,20 @@ install:
 docs:
     tfplugindocs generate {{ tfplugindocs_names }}
 
+# Fails on a page tfplugindocs would add, change or remove, so a schema change
+# without regenerated docs, or a resource without a page, fails `just check`.
 # Fail if docs/ is invalid or differs from what `just docs` generates.
 [group('docs')]
 docs-check: docs
     tfplugindocs validate --provider-name resend
     @if [ -n "$(git status --porcelain -- docs)" ]; then git status --short -- docs; git diff --stat -- docs; echo "docs/ is stale: run 'just docs' and commit the result" >&2; exit 1; fi
+
+# Online (downloads the Cloudflare provider), so not part of `check`. Builds the
+# provider and points both CLIs at it with dev_overrides.
+# Run `terraform validate` and `tofu validate` over every example in examples/.
+[group('docs')]
+validate-examples:
+    scripts/validate-examples.sh
 
 # Writes nothing: the next version, tag and changelog entry Commitizen would
 # produce from .cz.toml. --yes answers the "first tag?" prompt so it runs
