@@ -1,0 +1,51 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.RenderedProviderName}}"
+subcategory: ""
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Name}} ({{.Type}})
+
+{{ .Description | trimspace }}
+
+Resend generates the DNS records when the domain is created, so `records` is only known
+after the first apply. Changing `name`, `region` or `custom_return_path` deletes the domain
+and adds it again, which means publishing and verifying a new set of records.
+
+## Example Usage
+
+{{ tffile "examples/resources/resend_domain/resource.tf" }}
+
+### Publishing the records with Cloudflare
+
+This example adds the domain, publishes every record Resend generates in a Cloudflare zone
+with `cloudflare_dns_record` (Cloudflare provider v5), and then asks Resend to verify the
+domain. The same pattern works with any DNS provider's record resource.
+
+{{ tffile "examples/resources/resend_domain/cloudflare/main.tf" }}
+
+`for_each` needs the record set at plan time, and it doesn't exist until Resend creates the
+domain. Create the domain on its own first (`terraform apply -target=resend_domain.this`,
+or `tofu apply -target=resend_domain.this`), then run a full apply. Later applies need no
+`-target` unless the domain is replaced.
+
+{{ .SchemaMarkdown | trimspace }}
+
+## Import
+
+Import a domain by its Resend domain ID.
+
+In Terraform v1.5.0 and later, and OpenTofu v1.5.0 and later, use an
+[`import` block](https://developer.hashicorp.com/terraform/language/import):
+
+{{ tffile "examples/resources/resend_domain/import-by-string-id.tf" }}
+
+Or use the `terraform import` (or `tofu import`) command:
+
+{{ codefile "shell" "examples/resources/resend_domain/import.sh" }}
+
+The provider can't read `open_tracking`, `click_tracking`, `tls` or `custom_return_path`
+back from Resend, so they aren't filled in on import. The next apply sets `open_tracking`,
+`click_tracking` and `tls` to the values in your configuration (or their defaults), so set
+them to match the domain's current settings first.

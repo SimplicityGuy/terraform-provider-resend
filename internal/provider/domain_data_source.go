@@ -51,53 +51,60 @@ func (d *domainDataSource) Metadata(_ context.Context, req datasource.MetadataRe
 
 func (d *domainDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Use this data source to read a Resend domain.",
+		MarkdownDescription: "Reads a Resend domain by ID, including the DNS records Resend needs to verify it. Use it for a domain managed outside this configuration.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				MarkdownDescription: "The domain ID.",
+				MarkdownDescription: "The Resend domain ID, a UUID.",
 				Required:            true,
 			},
 			"name": schema.StringAttribute{
-				MarkdownDescription: "The domain name.",
+				MarkdownDescription: "The domain name, such as `updates.example.com`.",
 				Computed:            true,
 			},
 			"region": schema.StringAttribute{
-				MarkdownDescription: "The region where the domain is hosted.",
+				MarkdownDescription: "The region Resend sends the domain's email from: `us-east-1`, `eu-west-1`, `sa-east-1` or `ap-northeast-1`.",
 				Computed:            true,
 			},
 			"status": schema.StringAttribute{
-				MarkdownDescription: "The verification status of the domain.",
+				MarkdownDescription: "The verification status of the domain: one of `not_started`, `pending`, `verified`, `partially_verified`, `partially_failed`, `failed` or `temporary_failure`.",
 				Computed:            true,
 			},
 			"created_at": schema.StringAttribute{
-				MarkdownDescription: "The timestamp when the domain was created.",
+				MarkdownDescription: "When the domain was created, as reported by Resend.",
 				Computed:            true,
 			},
 			"records": schema.ListNestedAttribute{
-				MarkdownDescription: "DNS records required for domain verification.",
+				MarkdownDescription: "The DNS records to publish so Resend can verify the domain.",
 				Computed:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"record": schema.StringAttribute{
-							Computed: true,
+							MarkdownDescription: "What the record is for, as Resend labels it: `SPF`, `DKIM`, and, depending on the domain's settings, records such as `Tracking` or `Receiving`.",
+							Computed:            true,
 						},
 						"name": schema.StringAttribute{
-							Computed: true,
+							MarkdownDescription: "The record name relative to the root domain, such as `send` or `resend._domainkey` (`send.updates` for the subdomain `updates.example.com`). Some records, such as `Tracking`, are returned fully qualified.",
+							Computed:            true,
 						},
 						"type": schema.StringAttribute{
-							Computed: true,
+							MarkdownDescription: "The DNS record type, such as `MX`, `TXT` or `CNAME`.",
+							Computed:            true,
 						},
 						"ttl": schema.StringAttribute{
-							Computed: true,
+							MarkdownDescription: "The time to live Resend recommends. `Auto` means the DNS provider's default.",
+							Computed:            true,
 						},
 						"status": schema.StringAttribute{
-							Computed: true,
+							MarkdownDescription: "The verification status of this record: one of `not_started`, `pending`, `verified`, `failed` or `temporary_failure`.",
+							Computed:            true,
 						},
 						"value": schema.StringAttribute{
-							Computed: true,
+							MarkdownDescription: "The record content. Publish it exactly as returned: the SPF TXT value includes its surrounding quotes.",
+							Computed:            true,
 						},
 						"priority": schema.StringAttribute{
-							Computed: true,
+							MarkdownDescription: "The MX priority, as a string (for example `10`). Empty for record types that have no priority.",
+							Computed:            true,
 						},
 					},
 				},

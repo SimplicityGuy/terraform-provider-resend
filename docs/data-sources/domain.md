@@ -3,18 +3,27 @@
 page_title: "resend_domain Data Source - terraform-provider-resend"
 subcategory: ""
 description: |-
-  Use this data source to read a Resend domain.
+  Reads a Resend domain by ID, including the DNS records Resend needs to verify it. Use it for a domain managed outside this configuration.
 ---
 
 # resend_domain (Data Source)
 
-Use this data source to read a Resend domain.
+Reads a Resend domain by ID, including the DNS records Resend needs to verify it. Use it for a domain managed outside this configuration.
 
 ## Example Usage
 
 ```terraform
 data "resend_domain" "example" {
   id = "d91cd9bd-1176-453e-8fc1-35364d380206"
+}
+
+output "domain_status" {
+  value = data.resend_domain.example.status
+}
+
+# The DKIM record, for example to publish it with a DNS provider.
+output "dkim_record" {
+  value = one([for r in data.resend_domain.example.records : r if r.record == "DKIM"])
 }
 ```
 
@@ -23,25 +32,25 @@ data "resend_domain" "example" {
 
 ### Required
 
-- `id` (String) The domain ID.
+- `id` (String) The Resend domain ID, a UUID.
 
 ### Read-Only
 
-- `created_at` (String) The timestamp when the domain was created.
-- `name` (String) The domain name.
-- `records` (Attributes List) DNS records required for domain verification. (see [below for nested schema](#nestedatt--records))
-- `region` (String) The region where the domain is hosted.
-- `status` (String) The verification status of the domain.
+- `created_at` (String) When the domain was created, as reported by Resend.
+- `name` (String) The domain name, such as `updates.example.com`.
+- `records` (Attributes List) The DNS records to publish so Resend can verify the domain. (see [below for nested schema](#nestedatt--records))
+- `region` (String) The region Resend sends the domain's email from: `us-east-1`, `eu-west-1`, `sa-east-1` or `ap-northeast-1`.
+- `status` (String) The verification status of the domain: one of `not_started`, `pending`, `verified`, `partially_verified`, `partially_failed`, `failed` or `temporary_failure`.
 
 <a id="nestedatt--records"></a>
 ### Nested Schema for `records`
 
 Read-Only:
 
-- `name` (String)
-- `priority` (String)
-- `record` (String)
-- `status` (String)
-- `ttl` (String)
-- `type` (String)
-- `value` (String)
+- `name` (String) The record name relative to the root domain, such as `send` or `resend._domainkey` (`send.updates` for the subdomain `updates.example.com`). Some records, such as `Tracking`, are returned fully qualified.
+- `priority` (String) The MX priority, as a string (for example `10`). Empty for record types that have no priority.
+- `record` (String) What the record is for, as Resend labels it: `SPF`, `DKIM`, and, depending on the domain's settings, records such as `Tracking` or `Receiving`.
+- `status` (String) The verification status of this record: one of `not_started`, `pending`, `verified`, `failed` or `temporary_failure`.
+- `ttl` (String) The time to live Resend recommends. `Auto` means the DNS provider's default.
+- `type` (String) The DNS record type, such as `MX`, `TXT` or `CNAME`.
+- `value` (String) The record content. Publish it exactly as returned: the SPF TXT value includes its surrounding quotes.

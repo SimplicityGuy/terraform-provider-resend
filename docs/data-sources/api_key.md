@@ -3,22 +3,26 @@
 page_title: "resend_api_key Data Source - terraform-provider-resend"
 subcategory: ""
 description: |-
-  Use this data source to read a Resend API key.
+  Reads a Resend API key by ID. Resend never returns a key's token after creation, so this data source exposes only its metadata.
 ---
 
 # resend_api_key (Data Source)
 
-Use this data source to read a Resend API key.
+Reads a Resend API key by ID. Resend never returns a key's token after creation, so this data source exposes only its metadata.
 
 ## Example Usage
 
 ```terraform
 data "resend_api_key" "example" {
-  id = "key_123456"
+  id = "dacf4072-4119-4d88-932f-6202748ac7c8"
 }
 
 output "api_key_name" {
   value = data.resend_api_key.example.name
+}
+
+output "api_key_created_at" {
+  value = data.resend_api_key.example.created_at
 }
 ```
 
@@ -27,9 +31,9 @@ output "api_key_name" {
 
 ### Required
 
-- `id` (String) The API key ID.
+- `id` (String) The Resend API key ID, a UUID.
 
 ### Read-Only
 
-- `created_at` (String) The timestamp when the API key was created.
-- `name` (String) The name of the API key.
+- `created_at` (String) When the API key was created, as reported by Resend.
+- `name` (String) The name of the API key, shown in the Resend dashboard.
