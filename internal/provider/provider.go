@@ -9,7 +9,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	resend "github.com/resend/resend-go/v3"
 )
 
 var _ provider.Provider = &ResendProvider{}
@@ -63,7 +62,7 @@ func (p *ResendProvider) Configure(ctx context.Context, req provider.ConfigureRe
 		return
 	}
 
-	client := resend.NewClient(apiKey)
+	client := newResendClient(apiKey, p.version)
 	resp.DataSourceData = client
 	resp.ResourceData = client
 }
