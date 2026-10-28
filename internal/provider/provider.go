@@ -30,10 +30,10 @@ func (p *ResendProvider) Metadata(_ context.Context, _ provider.MetadataRequest,
 
 func (p *ResendProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "The Resend provider allows you to manage Resend resources such as domains and API keys.",
+		MarkdownDescription: "The Resend provider manages Resend sending domains and API keys with Terraform or OpenTofu.",
 		Attributes: map[string]schema.Attribute{
 			"api_key": schema.StringAttribute{
-				MarkdownDescription: "The API key for authenticating with the Resend API. Can also be set with the `RESEND_API_KEY` environment variable.",
+				MarkdownDescription: "The Resend API key the provider authenticates with. It needs `full_access` permission to manage domains and API keys. Falls back to the `RESEND_API_KEY` environment variable; one of the two is required.",
 				Optional:            true,
 				Sensitive:           true,
 			},
