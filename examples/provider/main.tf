@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     resend = {
-      source = "y0n0zawa/resend"
+      source = "SimplicityGuy/resend"
     }
   }
 }

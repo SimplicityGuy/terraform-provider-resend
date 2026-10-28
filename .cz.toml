@@ -1,0 +1,12 @@
+[tool.commitizen]
+name = "cz_conventional_commits"
+version = "0.0.0"
+version_provider = "commitizen"
+version_scheme = "semver2"
+tag_format = "v$version"
+major_version_zero = true
+prerelease_offset = 1
+annotated_tag = true
+update_changelog_on_bump = true
+changelog_file = "CHANGELOG.md"
+changelog_start_rev = "upstream/v1.0.1"

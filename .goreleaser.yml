@@ -48,5 +48,12 @@ signs:
       - "--detach-sign"
       - "${artifact}"
 
+release:
+  prerelease: auto
+  # RESEND_GO_VERSION must be set by the release workflow (the resend-go
+  # module version this build links against, e.g. via go list -m).
+  header: |
+    Built with resend-go {{ .Env.RESEND_GO_VERSION }}.
+
 changelog:
   disable: true
