@@ -1,6 +1,6 @@
 # terraform-provider-resend
 
-> This is SimplicityGuy's hard fork of [y0n0zawa/terraform-provider-resend](https://github.com/y0n0zawa/terraform-provider-resend). It isn't published to any registry yet. The install and usage instructions below still describe upstream until the rename lands. The plan is in [doc/release-plan.md](doc/release-plan.md).
+> This is SimplicityGuy's hard fork of [y0n0zawa/terraform-provider-resend](https://github.com/y0n0zawa/terraform-provider-resend). It isn't published to any registry yet. The instructions below use the final `SimplicityGuy/resend` address, which will only resolve once the first release is published. The plan is in [doc/release-plan.md](doc/release-plan.md).
 
 Terraform provider for managing [Resend](https://resend.com) resources such as domains and API keys.
 
@@ -15,7 +15,7 @@ Terraform provider for managing [Resend](https://resend.com) resources such as d
 terraform {
   required_providers {
     resend = {
-      source = "y0n0zawa/resend"
+      source = "SimplicityGuy/resend"
     }
   }
 }
