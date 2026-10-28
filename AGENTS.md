@@ -38,7 +38,7 @@ internal/provider/          # provider, resources, data sources, client wrapper,
   errors.go                 # retryOnRateLimit, isNotFoundError
 examples/                   # HCL examples feeding the docs
 docs/                       # generated registry docs
-doc/release-plan.md         # versioning and release plan
+docs/release-plan.md        # versioning and release plan
 ```
 
 ## Stack

@@ -1,6 +1,6 @@
 # terraform-provider-resend
 
-> This is SimplicityGuy's hard fork of [y0n0zawa/terraform-provider-resend](https://github.com/y0n0zawa/terraform-provider-resend). It isn't published to any registry yet. The instructions below use the final `SimplicityGuy/resend` address, which will only resolve once the first release is published. The plan is in [doc/release-plan.md](doc/release-plan.md).
+> This is SimplicityGuy's hard fork of [y0n0zawa/terraform-provider-resend](https://github.com/y0n0zawa/terraform-provider-resend). It isn't published to any registry yet. The instructions below use the final `SimplicityGuy/resend` address, which will only resolve once the first release is published. The plan is in [docs/release-plan.md](docs/release-plan.md).
 
 Terraform and OpenTofu provider for managing [Resend](https://resend.com) resources: domains, API keys and domain verification.
 
@@ -84,7 +84,7 @@ A single Go module built on the [Terraform Plugin Framework](https://developer.h
 
 ## Versioning and release
 
-The provider follows SemVer independently of the SDK it is built with, starting at v0.1.0 and reaching v1.0.0 after release candidates. Versions are bumped by [Commitizen](https://commitizen-tools.github.io/commitizen/) from Conventional Commits, tagged `vX.Y.Z` and published by GoReleaser. The schedule and release procedure are in [doc/release-plan.md](doc/release-plan.md). Changes are recorded in [CHANGELOG.md](CHANGELOG.md).
+The provider follows SemVer independently of the SDK it is built with, starting at v0.1.0 and reaching v1.0.0 after release candidates. Versions are bumped by [Commitizen](https://commitizen-tools.github.io/commitizen/) from Conventional Commits, tagged `vX.Y.Z` and published by GoReleaser. The schedule and release procedure are in [docs/release-plan.md](docs/release-plan.md). Changes are recorded in [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 

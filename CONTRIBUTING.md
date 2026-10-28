@@ -62,7 +62,7 @@ Use [Conventional Commits](https://www.conventionalcommits.org): `feat(domain): 
 
 ## Releases
 
-Releases are cut from `main` by a maintainer, with independent SemVer starting at v0.1.0. The plan for each release is in [doc/release-plan.md](doc/release-plan.md).
+Releases are cut from `main` by a maintainer, with independent SemVer starting at v0.1.0. The plan for each release is in [docs/release-plan.md](docs/release-plan.md).
 
 ```bash
 just bump-preview   # show the next version and changelog entry; writes nothing
