@@ -10,3 +10,4 @@ annotated_tag = true
 update_changelog_on_bump = true
 changelog_file = "CHANGELOG.md"
 changelog_start_rev = "upstream/v1.0.1"
+ignored_tag_formats = ["upstream/v$version"]
