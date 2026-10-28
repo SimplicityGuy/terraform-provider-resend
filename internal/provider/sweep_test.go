@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
-	resend "github.com/resend/resend-go/v3"
+	resend "github.com/resend/resend-go/v4"
 )
 
 func init() {

@@ -45,9 +45,9 @@ lock:
     mise lock --platform linux-x64,macos-arm64
 
 # Offline: no Resend credentials and no API calls. The acceptance suite is `just testacc`.
-# The authoritative pre-merge gate: hooks (format, golangci-lint, actionlint), vet, gosec, unit tests, build, release config, secret scan, registry docs drift.
+# The authoritative pre-merge gate: hooks (format, golangci-lint, actionlint), go.mod tidiness, vet, gosec, unit tests, build, release config, secret scan, registry docs drift.
 [group('validate')]
-check: lint vet sec test build release-check secret-scan docs-check
+check: lint tidy-check vet sec test build release-check secret-scan docs-check
 
 # Run every pre-commit hook over all files (gofmt/goimports, golangci-lint, actionlint, file hygiene, gitleaks on staged changes).
 [group('validate')]
@@ -58,6 +58,13 @@ lint:
 [group('develop')]
 fmt:
     golangci-lint fmt
+
+# Writes nothing: `-diff` prints the edits `go mod tidy` would make and exits
+# non-zero, so a missing, stale or wrongly `// indirect` requirement fails `check`.
+# Fail if go.mod or go.sum differs from what `go mod tidy` produces.
+[group('validate')]
+tidy-check:
+    go mod tidy -diff
 
 # Run go vet over every package.
 [group('validate')]

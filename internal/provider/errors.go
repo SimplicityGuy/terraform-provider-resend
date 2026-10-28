@@ -8,7 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	resend "github.com/resend/resend-go/v3"
+	resend "github.com/resend/resend-go/v4"
 )
 
 const (

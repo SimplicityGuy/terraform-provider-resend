@@ -3,9 +3,13 @@ package provider
 import (
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"regexp"
 	"runtime/debug"
+	"strings"
 	"testing"
+
+	resend "github.com/resend/resend-go/v4"
 )
 
 func TestResendGoVersionFromDeps(t *testing.T) {
@@ -18,7 +22,7 @@ func TestResendGoVersionFromDeps(t *testing.T) {
 	}
 
 	replaced := []*debug.Module{{
-		Path: "github.com/resend/resend-go/v3", Version: "v3.1.1",
+		Path: "github.com/resend/resend-go/v4", Version: "v4.9.1",
 		Replace: &debug.Module{Path: "../resend-go", Version: "(devel)"},
 	}}
 	if got := resendGoVersionFromDeps(replaced); got != unknownVersion {
@@ -27,6 +31,28 @@ func TestResendGoVersionFromDeps(t *testing.T) {
 
 	if got := resendGoVersionFromDeps(nil); got != unknownVersion {
 		t.Errorf("no deps: got %q, want %q", got, unknownVersion)
+	}
+}
+
+// The User-Agent must name the resend-go module the provider actually links,
+// so it stays right across a major-version upgrade of the SDK.
+func TestResendGoVersionMatchesLinkedSDK(t *testing.T) {
+	sdkPath := reflect.TypeFor[resend.Client]().PkgPath()
+	info, ok := debug.ReadBuildInfo()
+	if !ok {
+		t.Fatal("test binary has no build info")
+	}
+	var linked string
+	for _, dep := range info.Deps {
+		if dep.Path == sdkPath {
+			linked = strings.TrimPrefix(dep.Version, "v")
+		}
+	}
+	if linked == "" {
+		t.Fatalf("%s is not in the build info", sdkPath)
+	}
+	if got := resendGoVersion(); got != linked {
+		t.Errorf("resendGoVersion() = %q, want the linked %s version %q", got, sdkPath, linked)
 	}
 }
 
