@@ -1,5 +1,7 @@
 # terraform-provider-resend
 
+> This is SimplicityGuy's hard fork of [y0n0zawa/terraform-provider-resend](https://github.com/y0n0zawa/terraform-provider-resend). It isn't published to any registry yet. The install and usage instructions below still describe upstream until the rename lands. The plan is in [doc/release-plan.md](doc/release-plan.md).
+
 Terraform provider for managing [Resend](https://resend.com) resources such as domains and API keys.
 
 ## Requirements
@@ -82,3 +84,7 @@ go generate ./...
 ## License
 
 [MPL-2.0](LICENSE)
+
+## Acknowledgments
+
+This provider began as a hard fork of [y0n0zawa/terraform-provider-resend](https://github.com/y0n0zawa/terraform-provider-resend) (forked 2026-10-27 at v1.0.1, commit 6e9e43d, since detached from the fork network). Thanks to its author, Yoshitomo Onozawa. The code remains under MPL-2.0.
