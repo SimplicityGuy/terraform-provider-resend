@@ -1,9 +1,10 @@
 package provider
 
 import (
-	"github.com/resend/resend-go/v3"
 	"runtime/debug"
 	"strings"
+
+	"github.com/resend/resend-go/v3"
 )
 
 const (

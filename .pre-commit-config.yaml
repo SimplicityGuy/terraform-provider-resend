@@ -1,0 +1,56 @@
+---
+# Pre-commit hooks. `just setup` installs them; `just lint` (part of
+# `just check`) runs them over all files. Remote revisions are SHA-pinned
+# with a `# frozen: <tag>` comment so `pre-commit autoupdate --freeze` stays
+# a deliberate, reviewable bump.
+#
+# The local hooks run the tools pinned in mise.toml through `mise exec`, so a
+# commit, `just check` and CI all use the same binaries whether or not mise is
+# activated in the calling shell.
+
+# Tool-managed files: beads' database metadata and mise's generated locks.
+exclude: ^(\.beads/|\.mise/locks/|mise\.lock$)
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: 3e8a8703264a2f4a69428a0aa4dcb512790b2c8c  # frozen: v6.0.0
+    hooks:
+      - id: check-added-large-files
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-toml
+      - id: check-yaml
+      - id: detect-private-key
+      - id: end-of-file-fixer
+      - id: mixed-line-ending
+      - id: trailing-whitespace
+
+  - repo: local
+    hooks:
+      # gofmt and goimports, as configured in .golangci.yml. Reports a diff
+      # instead of rewriting; `just fmt` applies it.
+      - id: golangci-lint-fmt
+        name: golangci-lint fmt (gofmt, goimports)
+        entry: mise exec -- golangci-lint fmt --diff
+        language: system
+        types: [go]
+        pass_filenames: false
+
+      - id: golangci-lint
+        name: golangci-lint run
+        entry: mise exec -- golangci-lint run ./...
+        language: system
+        types: [go]
+        pass_filenames: false
+
+      - id: actionlint
+        name: actionlint (GitHub workflows)
+        entry: mise exec -- actionlint
+        language: system
+        files: ^\.github/workflows/.*\.ya?ml$
+
+      - id: gitleaks
+        name: gitleaks (staged changes)
+        entry: mise exec -- gitleaks git --staged --redact --no-banner .
+        language: system
+        pass_filenames: false

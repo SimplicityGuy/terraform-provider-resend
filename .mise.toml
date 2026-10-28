@@ -1,4 +1,0 @@
-[tools]
-go = "1.24"
-golangci-lint = "2"
-terraform = "1.12"
