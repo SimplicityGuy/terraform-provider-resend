@@ -7,7 +7,13 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
-	resend "github.com/resend/resend-go/v3"
+	resend "github.com/resend/resend-go/v4"
+)
+
+// The mocks must keep satisfying the SDK interfaces the provider depends on.
+var (
+	_ resend.DomainsSvc = (*mockDomainsSvc)(nil)
+	_ resend.ApiKeysSvc = (*mockApiKeysSvc)(nil)
 )
 
 // mockDomainsSvc is a mock implementation of resend.DomainsSvc for testing.
@@ -77,6 +83,7 @@ type mockApiKeysSvc struct {
 	CreateWithContextFn func(ctx context.Context, params *resend.CreateApiKeyRequest) (resend.CreateApiKeyResponse, error)
 	ListWithContextFn   func(ctx context.Context) (resend.ListApiKeysResponse, error)
 	RemoveWithContextFn func(ctx context.Context, apiKeyId string) (bool, error)
+	UpdateWithContextFn func(ctx context.Context, apiKeyId string, params *resend.UpdateApiKeyRequest) (resend.UpdateApiKeyResponse, error)
 }
 
 func (m *mockApiKeysSvc) CreateWithContext(ctx context.Context, params *resend.CreateApiKeyRequest) (resend.CreateApiKeyResponse, error) {
@@ -105,6 +112,14 @@ func (m *mockApiKeysSvc) RemoveWithContext(ctx context.Context, apiKeyId string)
 
 func (m *mockApiKeysSvc) Remove(apiKeyId string) (bool, error) {
 	return m.RemoveWithContextFn(context.Background(), apiKeyId)
+}
+
+func (m *mockApiKeysSvc) UpdateWithContext(ctx context.Context, apiKeyId string, params *resend.UpdateApiKeyRequest) (resend.UpdateApiKeyResponse, error) {
+	return m.UpdateWithContextFn(ctx, apiKeyId, params)
+}
+
+func (m *mockApiKeysSvc) Update(apiKeyId string, params *resend.UpdateApiKeyRequest) (resend.UpdateApiKeyResponse, error) {
+	return m.UpdateWithContextFn(context.Background(), apiKeyId, params)
 }
 
 // --- Test helpers for constructing tfsdk types ---

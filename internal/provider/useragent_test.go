@@ -18,7 +18,7 @@ func TestResendGoVersionFromDeps(t *testing.T) {
 	}
 
 	replaced := []*debug.Module{{
-		Path: "github.com/resend/resend-go/v3", Version: "v3.1.1",
+		Path: "github.com/resend/resend-go/v4", Version: "v4.9.1",
 		Replace: &debug.Module{Path: "../resend-go", Version: "(devel)"},
 	}}
 	if got := resendGoVersionFromDeps(replaced); got != unknownVersion {
