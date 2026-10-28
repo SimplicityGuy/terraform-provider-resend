@@ -47,14 +47,14 @@ Test resources use the `tf-test-` name prefix so the sweepers can remove leftove
 
 ## Terraform and OpenTofu
 
-The provider is published for both CLIs, so changes must work under both. Both are pinned in `mise.toml`. The acceptance suite uses whichever CLI the test framework finds; to run it under a specific one, set `TF_ACC_TERRAFORM_PATH` (and `TF_ACC_PROVIDER_NAMESPACE=hashicorp` when using OpenTofu) to that binary, for example:
+The provider targets both CLIs and will be published to both registries, so changes must work under both. Both are pinned in `mise.toml`. The acceptance suite uses whichever CLI the test framework finds; to run it under a specific one, set `TF_ACC_TERRAFORM_PATH` to that binary, for example:
 
 ```bash
 TF_ACC_TERRAFORM_PATH="$(mise which tofu)" just testacc
 TF_ACC_TERRAFORM_PATH="$(mise which terraform)" just testacc
 ```
 
-CI runs the suite against both.
+A CI matrix that runs the suite against both CLIs doesn't exist yet; bead tfresend-ee6 adds it, and verifies and documents the exact OpenTofu setup.
 
 ## Commits
 
