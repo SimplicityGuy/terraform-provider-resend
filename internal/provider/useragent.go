@@ -12,11 +12,15 @@ const (
 	unknownVersion       = "unknown"
 )
 
+// readBuildInfo is a variable so tests can simulate a binary without embedded
+// build info.
+var readBuildInfo = debug.ReadBuildInfo
+
 // resendGoVersion returns the resend-go module version this binary was built
 // with, read from the embedded build info. It matches any major version of
 // the module so it keeps working across SDK upgrades.
 func resendGoVersion() string {
-	info, ok := debug.ReadBuildInfo()
+	info, ok := readBuildInfo()
 	if !ok {
 		return unknownVersion
 	}
