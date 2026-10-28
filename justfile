@@ -70,13 +70,27 @@ sec:
     gosec -quiet ./...
 
 # TF_ACC is cleared so an exported value can never turn this into the acceptance run.
-# Run the unit tests (acceptance tests skip without TF_ACC).
+# The profile is checked after the tests pass, so a test failure is reported as
+# itself and coverage is only judged on a green run. No code is excluded from it.
+# Run the unit tests (acceptance tests skip without TF_ACC) and fail below 100% statement coverage.
 [group('validate')]
-test:
-    env -u TF_ACC go test ./...
+test: && _coverage-gate
+    env -u TF_ACC go test -coverprofile=coverage.out ./...
 
-# The 100% threshold is enforced by a later change; this only measures.
-# Run the unit tests with a coverage profile (coverage.out) and print the per-function summary.
+# Every block in the profile must have run at least once; `go tool cover -func` rounds to one decimal, so it cannot tell 99.96% from 100%.
+[private]
+_coverage-gate:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    uncovered=$(awk 'NR > 1 && $NF == 0 { n++ } END { print n + 0 }' coverage.out)
+    if [ "$uncovered" -ne 0 ]; then
+      go tool cover -func=coverage.out | tail -n 1
+      echo "coverage is below 100%: $uncovered uncovered block(s) in coverage.out; run 'just coverage' to see which functions" >&2
+      exit 1
+    fi
+    echo "coverage: 100% of statements"
+
+# Run the unit tests with a coverage profile (coverage.out) and print the per-function summary; `test` enforces the 100% threshold.
 [group('validate')]
 coverage:
     env -u TF_ACC go test -coverprofile=coverage.out ./...
