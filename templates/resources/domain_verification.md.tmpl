@@ -1,0 +1,31 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.RenderedProviderName}}"
+subcategory: ""
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Name}} ({{.Type}})
+
+{{ .Description | trimspace }}
+
+`status` is read from Resend on every refresh, so `terraform apply -refresh-only` (or
+`tofu apply -refresh-only`) picks up the result once Resend finishes checking. To send a
+new verification request, for example after fixing a DNS record, replace the resource:
+`terraform apply -replace=resend_domain_verification.example`.
+
+## Example Usage
+
+{{ tffile "examples/resources/resend_domain_verification/resource.tf" }}
+
+For a complete flow that publishes the records with Cloudflare before verifying, see the
+Cloudflare example on the `resend_domain` resource page.
+
+{{ .SchemaMarkdown | trimspace }}
+
+## Import
+
+Import is not supported. This resource stands for a verification request rather than an
+object in Resend, so there is nothing to import. To bring an existing domain's verification
+under management, declare the resource and apply: that sends one verification request and
+records the domain's current status.
