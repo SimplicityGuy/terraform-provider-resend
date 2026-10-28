@@ -358,6 +358,10 @@ func (r *domainResource) ImportState(ctx context.Context, req resource.ImportSta
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
 
+// objectValue is a variable so tests can force the object-construction error
+// path, which cannot occur while domainRecordAttrTypes matches the values.
+var objectValue = types.ObjectValue
+
 func flattenRecords(_ context.Context, records []resend.Record) (types.List, diag.Diagnostics) {
 	recordType := types.ObjectType{
 		AttrTypes: domainRecordAttrTypes(),
@@ -374,7 +378,7 @@ func flattenRecords(_ context.Context, records []resend.Record) (types.List, dia
 			priority = record.Priority.String()
 		}
 
-		recordObj, d := types.ObjectValue(domainRecordAttrTypes(), map[string]attr.Value{
+		recordObj, d := objectValue(domainRecordAttrTypes(), map[string]attr.Value{
 			"record":   types.StringValue(record.Record),
 			"name":     types.StringValue(record.Name),
 			"type":     types.StringValue(record.Type),
