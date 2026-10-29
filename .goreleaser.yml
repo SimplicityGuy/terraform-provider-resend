@@ -1,5 +1,10 @@
 version: 2
 
+# The registries require assets named terraform-provider-<name>_<version>_*.
+# Set explicitly so a clone or worktree under another directory name cannot
+# change it.
+project_name: terraform-provider-resend
+
 before:
   hooks:
     - go mod tidy
@@ -36,7 +41,15 @@ archives:
 checksum:
   name_template: "{{ .ProjectName }}_{{ .Version }}_SHA256SUMS"
   algorithm: sha256
+  # The registry manifest declares protocol version 6; without it in the
+  # release (and in SHA256SUMS) the registries assume protocol 5.
+  extra_files:
+    - glob: terraform-registry-manifest.json
+      name_template: "{{ .ProjectName }}_{{ .Version }}_manifest.json"
 
+# A binary (not --armor) detached signature of SHA256SUMS, as the Terraform
+# Registry requires. The release workflow presets the key's passphrase in
+# gpg-agent, so this gpg call never sees the passphrase.
 signs:
   - artifacts: checksum
     args:
@@ -50,8 +63,11 @@ signs:
 
 release:
   prerelease: auto
+  extra_files:
+    - glob: terraform-registry-manifest.json
+      name_template: "{{ .ProjectName }}_{{ .Version }}_manifest.json"
   # RESEND_GO_VERSION must be set by the release workflow (the resend-go
-  # module version this build links against, e.g. via go list -m).
+  # module version this build links against; release.yml reads it from go.mod).
   header: |
     Built with resend-go {{ .Env.RESEND_GO_VERSION }}.
 
