@@ -183,15 +183,22 @@ versions-check:
     scripts/versions-check.sh
 
 # Writes nothing: the next version, tag and changelog entry Commitizen would
-# produce from .cz.toml. --yes answers the "first tag?" prompt so it runs
-# unattended (CI, no tty) before v0.1.0 exists.
+# produce from .cz.toml, with the highlights in .release-notes/next.md inserted
+# under the version heading as `just bump` will. Exits non-zero while the
+# highlights are empty. --yes answers Commitizen's "first tag?" prompt so it
+# runs unattended before v0.1.0 exists. Extra arguments go to `cz bump`.
 # Preview the next release bump without changing any file.
 [group('release')]
-bump-preview:
-    cz bump --dry-run --yes
+bump-preview *args:
+    scripts/bump.sh --preview {{ args }}
 
 # Local only: it never pushes. Review the commit and tag, then push them deliberately.
-# Bump the version, update CHANGELOG.md, commit and create the annotated v$version tag.
+# Commitizen updates .cz.toml and CHANGELOG.md without committing, the highlights
+# move from .release-notes/next.md into the new CHANGELOG section (the file is
+# emptied), then one commit and the annotated v$version tag are made. Refuses
+# while the highlights are empty. Extra arguments go to `cz bump`
+# (e.g. `just bump --prerelease rc`).
+# Bump the version, write the CHANGELOG entry with the highlights, commit and create the annotated v$version tag.
 [group('release')]
-bump:
-    cz bump
+bump *args:
+    scripts/bump.sh {{ args }}
