@@ -156,6 +156,21 @@ checksum_source = "mise-versions"
 url = "https://github.com/opentofu/opentofu/releases/download/v1.13.2/tofu_1.13.2_darwin_arm64.tar.gz"
 url_api = "https://api.github.com/repos/opentofu/opentofu/releases/assets/662742637"
 
+[[tools.opentofu]]
+version = "1.6.3"
+backend = "aqua:opentofu/opentofu"
+specifiers = ["1.6.3"]
+
+[tools.opentofu."platforms.linux-x64"]
+checksum = "sha256:0faebb696a3fcbf5657b148cbe4f08049b23bdfef6c8edce8d5d4b168fe600f8"
+url = "https://github.com/opentofu/opentofu/releases/download/v1.6.3/tofu_1.6.3_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/opentofu/opentofu/releases/assets/178562152"
+
+[tools.opentofu."platforms.macos-arm64"]
+checksum = "sha256:e30787cf5664d035550c3f6db324108ec86d9898318ab9a6413e1a9baeab1e99"
+url = "https://github.com/opentofu/opentofu/releases/download/v1.6.3/tofu_1.6.3_darwin_arm64.tar.gz"
+url_api = "https://api.github.com/repos/opentofu/opentofu/releases/assets/178562164"
+
 [[tools."pipx:commitizen"]]
 version = "4.19.3"
 backend = "pipx:commitizen"
@@ -206,6 +221,19 @@ url = "https://releases.hashicorp.com/terraform/1.17.0/terraform_1.17.0_linux_am
 [tools.terraform."platforms.macos-arm64"]
 checksum = "sha256:7472a54cca911d46c0e399a5ebbce44444912d0d4dad7495f37f1fa51e7ca6b7"
 url = "https://releases.hashicorp.com/terraform/1.17.0/terraform_1.17.0_darwin_arm64.zip"
+
+[[tools.terraform]]
+version = "1.0.11"
+backend = "aqua:hashicorp/terraform"
+specifiers = ["1.0.11"]
+
+[tools.terraform."platforms.linux-x64"]
+checksum = "sha256:eeb46091a42dc303c3a3c300640c7774ab25cbee5083dafa5fd83b54c8aca664"
+url = "https://releases.hashicorp.com/terraform/1.0.11/terraform_1.0.11_linux_amd64.zip"
+
+[tools.terraform."platforms.macos-arm64"]
+checksum = "sha256:737e1765afbadb3d76e1929d4b4af8da55010839aa08e9e730d46791eb8ea5a6"
+url = "https://releases.hashicorp.com/terraform/1.0.11/terraform_1.0.11_darwin_arm64.zip"
 
 [[tools.uv]]
 version = "0.13.6"

@@ -8,7 +8,7 @@ Terraform and OpenTofu provider for managing [Resend](https://resend.com) resour
 
 The provider is not published to the Terraform or OpenTofu registry yet. The first release, v0.1.0, publishes it to both. Until then you can [build it from source](#build) and point a CLI at it with a `dev_overrides` block.
 
-Once published, the same configuration works with Terraform (>= 1.0) and OpenTofu:
+Once published, the same configuration works with Terraform and OpenTofu (see [Supported versions](#supported-terraform-and-opentofu-versions)):
 
 ```hcl
 terraform {
@@ -21,6 +21,17 @@ terraform {
 ```
 
 `terraform init` resolves it from registry.terraform.io and `tofu init` from registry.opentofu.org.
+
+## Supported Terraform and OpenTofu versions
+
+The acceptance suite and the examples run in CI against the oldest and the latest version of each CLI:
+
+| CLI       | Oldest supported | Latest tested |
+| --------- | ---------------- | ------------- |
+| Terraform | `1.0.11`         | `1.17.0`      |
+| OpenTofu  | `1.6.3`          | `1.13.2`      |
+
+The provider speaks plugin protocol 6, which needs Terraform 1.0 or later, and OpenTofu's first release is 1.6. Versions in between are expected to work but are not tested separately; older versions are not supported. The versions are declared once, in `mise.toml`; [CONTRIBUTING.md](CONTRIBUTING.md#terraform-and-opentofu) explains the choice.
 
 ## Usage
 
@@ -65,7 +76,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the workflow and [AGENTS.md](AGENTS.m
 
 ### Validation
 
-`just check` runs the pre-commit hooks (formatting, golangci-lint, actionlint, zizmor, file hygiene), `go mod tidy -diff`, `go vet`, gosec, the unit tests, the build, the GoReleaser config check and a gitleaks scan of the history. Related recipes: `just test`, `just coverage`, `just vulncheck` and `just docs-check`. Acceptance tests (`just testacc`) call the live Resend API and need `RESEND_API_KEY`.
+`just check` runs the pre-commit hooks (formatting, golangci-lint, actionlint, zizmor, file hygiene), `go mod tidy -diff`, `go vet`, gosec, the unit tests, the build, the GoReleaser config check, a gitleaks scan of the history, the supported-versions tables, and `terraform validate` / `tofu validate` of the examples under the oldest and latest pinned version of each (offline, against a locally built provider). Related recipes: `just test`, `just coverage`, `just vulncheck` and `just docs-check`. Acceptance tests (`just testacc`, or `just testacc tofu` to run them under OpenTofu) call the live Resend API and need `RESEND_API_KEY`.
 
 ### Build
 

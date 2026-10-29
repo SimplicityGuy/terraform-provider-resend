@@ -47,18 +47,31 @@ just testacc
 - Test resources are named with the `tf-test-` prefix plus a random suffix and are destroyed by each test. After a failed or interrupted run, remove leftovers with `just sweep`. The sweeper deletes only domains and API keys whose name starts with `tf-test-`; give the key you run with a different name.
 - Never print the key (no `set -x`, no `echo`), and keep it out of shell history and logs.
 
-CI runs `just testacc` (then `just sweep`) on pushes to `main` and on pull requests from this repository, using the `RESEND_API_KEY` repository secret. It never runs on fork or Dependabot pull requests, which receive no secrets, and runs are serialized because they share one account.
+CI runs `just testacc` under Terraform and OpenTofu (then `just sweep`, see [Terraform and OpenTofu](#terraform-and-opentofu)) on pushes to `main` and on pull requests from this repository, using the `RESEND_API_KEY` repository secret. It never runs on fork or Dependabot pull requests, which receive no secrets, and runs are serialized because they share one account.
 
 ## Terraform and OpenTofu
 
-The provider targets both CLIs and will be published to both registries, so changes must work under both. Both are pinned in `mise.toml`. The acceptance suite uses whichever CLI the test framework finds; to run it under a specific one, set `TF_ACC_TERRAFORM_PATH` to that binary, for example:
+The provider targets both CLIs and is published to both registries, so changes must work under both. The versions the provider supports are declared once, in the `terraform` and `opentofu` entries of `mise.toml` (checksummed in `mise.lock`):
+
+| CLI       | Oldest supported | Latest tested |
+| --------- | ---------------- | ------------- |
+| Terraform | `1.0.11`         | `1.17.0`      |
+| OpenTofu  | `1.6.3`          | `1.13.2`      |
+
+The highest entry of each is the `terraform` / `tofu` on `PATH` and the "latest" leg; the lowest is the "oldest" leg. Everything else derives from them (`scripts/tf-cli.sh`): the CI matrix, `just testacc`, `just validate-examples`. The README and the docs index list the same versions, and `just versions-check` (part of `just check`) fails when they stop matching `mise.toml`. To raise or lower a version, edit `mise.toml`, run `just lock`, update the tables in `README.md` and `templates/index.md.tmpl`, run `just docs`, and commit them together.
+
+Why these floors: the provider speaks plugin protocol 6 (the registry manifest declares it), which Terraform supports from 1.0, and 1.0.11 is the last 1.0 patch release. OpenTofu's first release is 1.6, and 1.6.3 is its last 1.6 patch release, so both floors are the oldest line a user can run with the newest fixes. Raise a floor only for a provider feature that needs a newer CLI, and say so in the docs. Config-driven `import` blocks need Terraform and OpenTofu 1.5+; that is the CLI's own limit, so the import examples are validated only where it applies and the `terraform import` command is documented beside them.
+
+Run the acceptance suite under a specific CLI with `just testacc <terraform|tofu> [latest|oldest|VERSION]`, for example:
 
 ```bash
-TF_ACC_TERRAFORM_PATH="$(mise which tofu)" just testacc
-TF_ACC_TERRAFORM_PATH="$(mise which terraform)" just testacc
+just testacc tofu            # the latest pinned OpenTofu
+just testacc terraform oldest
 ```
 
-A CI matrix that runs the suite against both CLIs doesn't exist yet; bead tfresend-ee6 adds it, and verifies and documents the exact OpenTofu setup.
+It sets `TF_ACC_TERRAFORM_PATH` to that CLI's binary. For OpenTofu it also sets `TF_ACC_PROVIDER_HOST=registry.opentofu.org`: terraform-plugin-testing addresses the provider under `registry.terraform.io` by default, which `tofu` would not match. The examples are validated offline under all four versions by `just validate-examples` (part of `just check`), using a `dev_overrides` CLI config that points at the locally built provider; `just validate-examples-online` also validates the examples that use other providers, and CI runs it.
+
+CI (`.github/workflows/acceptance.yml`) runs the four legs in order, then one sweep. Why it is a workflow of its own: the Resend account is shared, so only one run may touch it at a time, and the sweeper must never delete the live resources of a run still in flight. A concurrency group on the matrix jobs would cancel legs (GitHub keeps one pending job per group), so the group is on the workflow: a run holds it from its first leg to its sweep. The legs use `max-parallel: 1`, so the load on the account is that of one suite.
 
 ## Commits
 

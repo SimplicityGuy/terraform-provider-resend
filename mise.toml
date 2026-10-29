@@ -25,9 +25,15 @@ python = "3.14.10"
 uv = "0.13.6"
 "pipx:commitizen" = "4.19.3"
 
-# The provider is published for both CLIs: docs generation and the acceptance
-# suite drive them.
-terraform = "1.17.0"
-opentofu = "1.13.2"
+# The provider is published for both CLIs. These two lists are the ONE place
+# that declares which versions are supported: the highest entry of each is the
+# "latest" CI leg and the default `terraform` / `tofu` on PATH (docs generation,
+# `just validate-examples`), the lowest is the "oldest" leg. `just testacc`,
+# `just validate-examples`, the CI matrix and `just versions-check` (which keeps
+# README.md and templates/index.md.tmpl in step) all derive from them. Keep the
+# highest entry first, which makes it the PATH default. Why these floors:
+# CONTRIBUTING.md, "Terraform and OpenTofu".
+terraform = ["1.17.0", "1.0.11"]
+opentofu = ["1.13.2", "1.6.3"]
 "aqua:hashicorp/terraform-plugin-docs" = "0.25.0"
 goreleaser = "2.19.0"

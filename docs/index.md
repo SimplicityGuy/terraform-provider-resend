@@ -66,6 +66,20 @@ Set the key in one of two ways. The `api_key` argument wins when both are set.
 2. The `api_key` argument, typically from a sensitive variable as in the example above.
    Don't commit the key to version control.
 
+## Supported Terraform and OpenTofu versions
+
+The acceptance suite and the examples run in CI against the oldest and the latest version of each
+CLI:
+
+| CLI       | Oldest supported | Latest tested |
+| --------- | ---------------- | ------------- |
+| Terraform | `1.0.11`         | `1.17.0`      |
+| OpenTofu  | `1.6.3`          | `1.13.2`      |
+
+The provider speaks plugin protocol 6, which needs Terraform 1.0 or later, and OpenTofu's first
+release is 1.6. Versions in between are expected to work but are not tested separately. Older
+versions are not supported.
+
 ## Installation
 
 The provider works with both Terraform and OpenTofu. Declare it in `required_providers`:
