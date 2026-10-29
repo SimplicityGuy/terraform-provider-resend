@@ -97,6 +97,30 @@ A single Go module built on the [Terraform Plugin Framework](https://developer.h
 
 The provider follows SemVer independently of the SDK it is built with, starting at v0.1.0 and reaching v1.0.0 after release candidates. Versions are bumped by [Commitizen](https://commitizen-tools.github.io/commitizen/) from Conventional Commits, tagged `vX.Y.Z` and published by GoReleaser. The schedule and release procedure are in [docs/release-plan.md](docs/release-plan.md). Changes are recorded in [CHANGELOG.md](CHANGELOG.md).
 
+## Verifying releases
+
+Each release's checksums file is signed with the release key, fingerprint
+`30D2732FD215D0089C27FCCB9F85682D8BB841F1` (RSA 4096, expires 2028-10-28). The public key is
+[`release-signing-key.asc`](release-signing-key.asc); [SECURITY.md](SECURITY.md) has the details.
+`terraform init` and `tofu init` verify the signature for you. To check a release by hand, replace
+`X.Y.Z` with the version:
+
+```bash
+gpg --import release-signing-key.asc
+gpg --fingerprint 30D2732FD215D0089C27FCCB9F85682D8BB841F1   # compare with the fingerprint above
+
+base=https://github.com/SimplicityGuy/terraform-provider-resend/releases/download/vX.Y.Z
+curl -fsSLO "$base/terraform-provider-resend_X.Y.Z_SHA256SUMS"
+curl -fsSLO "$base/terraform-provider-resend_X.Y.Z_SHA256SUMS.sig"
+curl -fsSLO "$base/terraform-provider-resend_X.Y.Z_linux_amd64.zip"
+
+gpg --verify terraform-provider-resend_X.Y.Z_SHA256SUMS.sig terraform-provider-resend_X.Y.Z_SHA256SUMS
+sha256sum --ignore-missing -c terraform-provider-resend_X.Y.Z_SHA256SUMS   # macOS: shasum -a 256 --ignore-missing -c <file>
+```
+
+`gpg --verify` must report a good signature from `SimplicityGuy Release Signing` made by the key
+with that fingerprint.
+
 ## License
 
 [MPL-2.0](LICENSE)

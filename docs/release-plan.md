@@ -106,15 +106,16 @@ Each wave can start once the waves before it are done.
 
 ## Prerequisites and risks
 
-- **GitHub-side setup (`infra-zcp`, infra hive).** The repository left the fork network on
-  2026-10-28. The rest of this bead adopts it into the SimplicityGuy github module with the
-  repository standards and seals the Actions secrets: a Resend API key for a dedicated test
-  account, the release GPG key and its passphrase. Acceptance CI (`vtt`) and v0.1.0 depend on it.
-  Beads can't depend across hives, so this ordering is by convention: land `infra-zcp` first.
+- **GitHub-side setup (`infra-zcp`, infra hive).** Done on 2026-10-29. The repository left the
+  fork network on 2026-10-28; `infra-zcp` adopted it into the SimplicityGuy github module with the
+  repository standards, sealed the Actions secrets (a Resend API key for a dedicated test account,
+  the release GPG key and its passphrase) and applied the settings. Acceptance CI (`vtt`) and
+  v0.1.0 depended on it.
 - **GitHub Actions billing (`infra-ddy`, infra hive).** On 2026-10-27, GitHub refused Actions runs
   account-wide ("recent account payments have failed or your spending limit needs to be
-  increased"). Until that's resolved, CI, the acceptance tests and `release.yml` can't run, and no
-  release can ship.
+  increased"). The billing block applies to private repositories only. This repository is public,
+  and its CI runs (PR #4 ran on 2026-10-29), so it does not block CI, the acceptance tests or
+  `release.yml`.
 - **A dedicated Resend test account.** The acceptance tests create real domains, keys and webhooks.
   They must never run against a production account.
 - **The release signing key.** RSA 4096, not ECC: the Terraform Registry rejects ECC keys. It's
