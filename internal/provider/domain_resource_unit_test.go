@@ -8,7 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
-	resend "github.com/resend/resend-go/v3"
+	resend "github.com/resend/resend-go/v4"
 )
 
 func TestFlattenRecords_empty(t *testing.T) {

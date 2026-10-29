@@ -2,7 +2,7 @@ package provider
 
 import (
 	"github.com/hashicorp/terraform-plugin-framework/diag"
-	resend "github.com/resend/resend-go/v3"
+	resend "github.com/resend/resend-go/v4"
 )
 
 // extractClient extracts the Resend client from provider data.

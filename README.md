@@ -1,85 +1,101 @@
 # terraform-provider-resend
 
-> This is SimplicityGuy's hard fork of [y0n0zawa/terraform-provider-resend](https://github.com/y0n0zawa/terraform-provider-resend). It isn't published to any registry yet. The install and usage instructions below still describe upstream until the rename lands. The plan is in [doc/release-plan.md](doc/release-plan.md).
+> This is SimplicityGuy's hard fork of [y0n0zawa/terraform-provider-resend](https://github.com/y0n0zawa/terraform-provider-resend). It isn't published to any registry yet. The instructions below use the final `SimplicityGuy/resend` address, which will only resolve once the first release is published. The plan is in [docs/release-plan.md](docs/release-plan.md).
 
-Terraform provider for managing [Resend](https://resend.com) resources such as domains and API keys.
+Terraform and OpenTofu provider for managing [Resend](https://resend.com) resources: domains, API keys and domain verification.
 
-## Requirements
+## Installation
 
-- [Terraform](https://www.terraform.io/downloads.html) >= 1.0
-- [Go](https://golang.org/doc/install) >= 1.24 (to build the provider)
+The provider is not published to the Terraform or OpenTofu registry yet. The first release, v0.1.0, publishes it to both. Until then you can [build it from source](#build) and point a CLI at it with a `dev_overrides` block.
 
-## Usage
+Once published, the same configuration works with Terraform and OpenTofu (see [Supported versions](#supported-terraform-and-opentofu-versions)):
 
 ```hcl
 terraform {
   required_providers {
     resend = {
-      source = "y0n0zawa/resend"
+      source = "SimplicityGuy/resend"
     }
   }
 }
-
-provider "resend" {
-  api_key = var.resend_api_key # Or set RESEND_API_KEY environment variable
-}
 ```
 
-## Authentication
+`terraform init` resolves it from registry.terraform.io and `tofu init` from registry.opentofu.org.
 
-Set the API key via the provider block or the `RESEND_API_KEY` environment variable:
+## Supported Terraform and OpenTofu versions
 
-```bash
-export RESEND_API_KEY="re_..."
-```
+The acceptance suite and the examples run in CI against the oldest and the latest version of each CLI:
 
-## Resources and Data Sources
+| CLI       | Oldest supported | Latest tested |
+| --------- | ---------------- | ------------- |
+| Terraform | `1.0.11`         | `1.17.0`      |
+| OpenTofu  | `1.6.3`          | `1.13.2`      |
 
-### Resources
+The provider speaks plugin protocol 6, which needs Terraform 1.0 or later, and OpenTofu's first release is 1.6. Versions in between are expected to work but are not tested separately; older versions are not supported. The versions are declared once, in `mise.toml`; [CONTRIBUTING.md](CONTRIBUTING.md#terraform-and-opentofu) explains the choice.
 
-- `resend_domain` - Manages a Resend domain
-- `resend_api_key` - Manages a Resend API key
-- `resend_domain_verification` - Triggers domain verification
-
-### Data Sources
-
-- `resend_domain` - Reads a Resend domain
-- `resend_api_key` - Reads a Resend API key
-
-## Example
+## Usage
 
 ```hcl
-# Create a domain
+provider "resend" {
+  api_key = var.resend_api_key # Or set the RESEND_API_KEY environment variable
+}
+
 resource "resend_domain" "example" {
   name   = "mail.example.com"
   region = "us-east-1"
 }
 
-# Verify the domain
 resource "resend_domain_verification" "example" {
   domain_id = resend_domain.example.id
 }
 ```
 
+Set the API key in the provider block or with `export RESEND_API_KEY="re_..."`.
+
+| Kind | Name | Purpose |
+|---|---|---|
+| Resource | `resend_domain` | Manages a domain |
+| Resource | `resend_api_key` | Manages an API key |
+| Resource | `resend_domain_verification` | Triggers domain verification |
+| Data source | `resend_domain` | Reads a domain |
+| Data source | `resend_api_key` | Reads an API key |
+
+Full reference documentation is in [docs/](docs/index.md).
+
 ## Development
+
+Tools (Go, golangci-lint, gosec, just, pre-commit, gitleaks, Terraform, OpenTofu and others) are pinned in `mise.toml`. With [mise](https://mise.jdx.dev) installed:
+
+```bash
+just setup   # install the pinned tools, Go modules and the pre-commit hook
+just check   # the pre-merge gate
+just --list  # every recipe
+```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the workflow and [AGENTS.md](AGENTS.md) for the code conventions.
+
+### Validation
+
+`just check` runs the pre-commit hooks (formatting, golangci-lint, actionlint, zizmor, file hygiene), `go mod tidy -diff`, `go vet`, gosec, the unit tests, the build, the GoReleaser config check, a gitleaks scan of the history, the supported-versions tables, and `terraform validate` / `tofu validate` of the examples under the oldest and latest pinned version of each (offline, against a locally built provider). Related recipes: `just test`, `just coverage`, `just vulncheck` and `just docs-check`. Acceptance tests (`just testacc`, or `just testacc tofu` to run them under OpenTofu) call the live Resend API and need `RESEND_API_KEY`.
 
 ### Build
 
 ```bash
-go build -o terraform-provider-resend
+just build     # writes ./terraform-provider-resend
+just install   # installs into GOBIN, for a dev_overrides block
 ```
 
-### Test
+### Architecture
 
-```bash
-go test ./...
-```
+A single Go module built on the [Terraform Plugin Framework](https://developer.hashicorp.com/terraform/plugin/framework) (protocol v6) and the [resend-go](https://github.com/resend/resend-go) SDK.
 
-### Generate documentation
+- `main.go` serves the provider.
+- `internal/provider/` holds the provider, one file per resource and data source, the API client wrapper, the retry and not-found helpers (`errors.go`) and the tests.
+- `examples/` and `docs/` feed the registry documentation, generated by `just docs`.
 
-```bash
-go generate ./...
-```
+## Versioning and release
+
+The provider follows SemVer independently of the SDK it is built with, starting at v0.1.0 and reaching v1.0.0 after release candidates. Versions are bumped by [Commitizen](https://commitizen-tools.github.io/commitizen/) from Conventional Commits, tagged `vX.Y.Z` and published by GoReleaser. The schedule and release procedure are in [docs/release-plan.md](docs/release-plan.md). Changes are recorded in [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 

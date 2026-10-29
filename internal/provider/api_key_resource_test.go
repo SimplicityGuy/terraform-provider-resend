@@ -31,7 +31,7 @@ func TestAccApiKeyResource_basic(t *testing.T) {
 
 func TestAccApiKeyResource_withDomain(t *testing.T) {
 	keyName := fmt.Sprintf("tf-test-%s", acctest.RandStringFromCharSet(8, acctest.CharSetAlphaNum))
-	domainName := fmt.Sprintf("tf-test-%s.example.com", acctest.RandStringFromCharSet(8, acctest.CharSetAlphaNum))
+	domainName := testAccDomainName(t)
 	resourceName := "resend_api_key.test"
 
 	resource.Test(t, resource.TestCase{

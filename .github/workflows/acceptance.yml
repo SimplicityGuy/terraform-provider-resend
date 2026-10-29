@@ -1,0 +1,106 @@
+---
+# Acceptance: the live suite against the dedicated Resend test account, once
+# per Terraform and OpenTofu leg (the oldest and the latest version of each),
+# then one sweep. A workflow of its own, not a job of ci.yml, because the whole
+# run is one unit under a repository-wide concurrency group.
+#
+# Secrets: RESEND_API_KEY is read only in the env of the steps that run the
+# tests and the sweeper. The jobs run only on pushes to main and same-repo pull
+# requests, never on fork or Dependabot pull requests (Dependabot's secret
+# store is deliberately empty; see .github/dependabot.yml). The PR author is
+# checked rather than github.actor, because a maintainer re-running a
+# Dependabot PR's checks becomes the actor.
+#
+# One shared account, so one run at a time, and every leg runs:
+#
+# - The concurrency group is on the WORKFLOW, not on the matrix jobs. GitHub
+#   keeps a single pending job per group and cancels older pending ones, so a
+#   group on a four-leg matrix would cancel legs. On the workflow, a run holds
+#   the group from its first leg to its sweep. A run waiting behind another is
+#   cancelled whole if a newer run queues up, never half-run.
+# - A run that the gate below skips (a fork or Dependabot PR) gets a group of
+#   its own: it must not queue behind, or supersede, a real run.
+# - `max-parallel: 1` runs the legs one after another, so the account sees one
+#   suite at a time and the load stays that of a single run (the Resend rate
+#   limit and plan limits are per account). `fail-fast: false` lets every leg
+#   report, so a Terraform failure does not hide an OpenTofu one.
+# - The sweep is a dependent job that runs once after the last leg, even when a
+#   leg failed or the run was cancelled, while the run still holds the group.
+#   It can only find this run's leftovers, never another run's live resources.
+#
+# Which version a leg runs is not written here: `latest` and `oldest` resolve
+# to the highest and lowest Terraform / OpenTofu pinned in mise.toml.
+name: Acceptance
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ (github.event_name == 'push' ||
+    (github.event.pull_request.head.repo.full_name == github.repository &&
+     github.event.pull_request.user.login != 'dependabot[bot]')) && 'acceptance' || format('acceptance-ungated-{0}', github.run_id) }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  acceptance:
+    name: acceptance (${{ matrix.cli }} ${{ matrix.channel }})
+    if: >-
+      github.event_name == 'push' ||
+      (github.event.pull_request.head.repo.full_name == github.repository &&
+       github.event.pull_request.user.login != 'dependabot[bot]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        cli: [terraform, tofu]
+        channel: [latest, oldest]
+    env:
+      MISE_TRUSTED_CONFIG_PATHS: ${{ github.workspace }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: jdx/mise-action@fc42bcc7ddbf51124c30f95a877a0c5168a3bfde # v5.2.1
+
+      - name: just testacc
+        run: just testacc "$CLI" "$CHANNEL"
+        env:
+          CLI: ${{ matrix.cli }}
+          CHANNEL: ${{ matrix.channel }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          RESEND_TEST_DOMAIN: ${{ vars.RESEND_TEST_DOMAIN }}
+
+  # Removes tf-test- leftovers, including those of a failed or cancelled leg.
+  # Skipped when the gate skipped the legs, so it never runs without the secret.
+  sweep:
+    name: sweep
+    needs: acceptance
+    if: ${{ always() && needs.acceptance.result != 'skipped' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      MISE_TRUSTED_CONFIG_PATHS: ${{ github.workspace }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: jdx/mise-action@fc42bcc7ddbf51124c30f95a877a0c5168a3bfde # v5.2.1
+
+      - name: just sweep
+        run: just sweep
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}

@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	resend "github.com/resend/resend-go/v3"
+	resend "github.com/resend/resend-go/v4"
 )
 
 var _ resource.Resource = &apiKeyResource{}
@@ -41,24 +41,24 @@ func (r *apiKeyResource) Metadata(_ context.Context, req resource.MetadataReques
 
 func (r *apiKeyResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Manages a Resend API key.",
+		MarkdownDescription: "Manages a Resend API key. Resend shows a key's token only once, when the key is created, and the provider keeps it in state as the sensitive `token` attribute. Changing any argument replaces the key, which issues a new token.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				MarkdownDescription: "The API key ID.",
+				MarkdownDescription: "The Resend API key ID, a UUID. This is not the secret token.",
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"name": schema.StringAttribute{
-				MarkdownDescription: "The name of the API key.",
+				MarkdownDescription: "The name of the API key, shown in the Resend dashboard. Changing it replaces the key.",
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"permission": schema.StringAttribute{
-				MarkdownDescription: "The permission level. Valid values: `full_access`, `sending_access`. Defaults to `full_access`.",
+				MarkdownDescription: "What the key may do. `full_access` can create, read, update and delete any resource; `sending_access` can only send email. Valid values: `full_access`, `sending_access`. Defaults to `full_access`. Changing it replaces the key.",
 				Optional:            true,
 				Computed:            true,
 				Default:             stringdefault.StaticString("full_access"),
@@ -70,14 +70,14 @@ func (r *apiKeyResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				},
 			},
 			"domain_id": schema.StringAttribute{
-				MarkdownDescription: "The domain ID to restrict the API key to.",
+				MarkdownDescription: "Restricts the key to sending from one domain, by domain ID. Resend only applies it when `permission` is `sending_access`. Changing it replaces the key.",
 				Optional:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"token": schema.StringAttribute{
-				MarkdownDescription: "The API key token. Only available after creation; cannot be retrieved later.",
+				MarkdownDescription: "The secret API key (`re_...`). Resend returns it only when the key is created, so it is empty for an imported key and can't be recovered if lost from state.",
 				Computed:            true,
 				Sensitive:           true,
 				PlanModifiers: []planmodifier.String{

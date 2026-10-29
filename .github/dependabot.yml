@@ -1,11 +1,108 @@
+---
+# Dependabot config for terraform-provider-resend, scoped to the ecosystems this
+# repository has:
+#   - gomod: Go module dependencies in go.mod / go.sum
+#   - github-actions: workflow action pins
+#   - pre-commit: hook revisions in .pre-commit-config.yaml
+#
+# Each ecosystem yields at most one version-updates PR and one security-updates
+# PR per weekly run (one group per kind, matching every dependency).
+#
+# Cooldown: every ecosystem waits 7 days (default-days) before proposing a newly
+# published version, so a compromised or yanked release is unlikely to be
+# proposed immediately. Only default-days is set, so every update type waits
+# the same 7 days.
+#
+# Labels come from the shared S6 label set. That set has no Go label, so the
+# gomod block carries `dependencies` alone.
+#
+# Dependabot secrets: Dependabot PRs do not receive repository Actions secrets
+# (they read the separate Dependabot secret store, which is deliberately left
+# empty). Secret-dependent CI jobs, such as the acceptance tests that need
+# RESEND_API_KEY, therefore skip on Dependabot PRs rather than fail; the CI
+# workflows implement that skip. The remaining jobs (build, lint, unit tests)
+# run normally.
+#
+# Deliberate gaps:
+#   - mise.toml / mise.lock tool pins have no Dependabot ecosystem; bump them
+#     with `just lock`.
 version: 2
 updates:
-  - package-ecosystem: gomod
-    directory: /
+  - package-ecosystem: "gomod"
+    directory: "/"
     schedule:
-      interval: weekly
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "America/Los_Angeles"
+    commit-message:
+      prefix: "build"
+      include: "scope"
+    cooldown:
+      default-days: 7
+    labels:
+      - "dependencies"
+    assignees:
+      - "SimplicityGuy"
+    groups:
+      gomod-version-updates:
+        applies-to: version-updates
+        patterns:
+          - "*"
+      gomod-security-updates:
+        applies-to: security-updates
+        patterns:
+          - "*"
 
-  - package-ecosystem: github-actions
-    directory: /
+  - package-ecosystem: "github-actions"
+    directory: "/"
     schedule:
-      interval: weekly
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "America/Los_Angeles"
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+    cooldown:
+      default-days: 7
+    labels:
+      - "dependencies"
+      - "github-actions"
+    assignees:
+      - "SimplicityGuy"
+    groups:
+      actions-version-updates:
+        applies-to: version-updates
+        patterns:
+          - "*"
+      actions-security-updates:
+        applies-to: security-updates
+        patterns:
+          - "*"
+
+  - package-ecosystem: "pre-commit"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "America/Los_Angeles"
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+    cooldown:
+      default-days: 7
+    labels:
+      - "dependencies"
+    assignees:
+      - "SimplicityGuy"
+    groups:
+      pre-commit-version-updates:
+        applies-to: version-updates
+        patterns:
+          - "*"
+      pre-commit-security-updates:
+        applies-to: security-updates
+        patterns:
+          - "*"

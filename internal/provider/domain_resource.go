@@ -15,7 +15,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	resend "github.com/resend/resend-go/v3"
+	resend "github.com/resend/resend-go/v4"
 )
 
 var _ resource.Resource = &domainResource{}
@@ -64,24 +64,24 @@ func (r *domainResource) Metadata(_ context.Context, req resource.MetadataReques
 
 func (r *domainResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Manages a Resend domain.",
+		MarkdownDescription: "Manages a Resend sending domain. Creating the resource adds the domain to Resend, which generates the DNS records (`records`) that prove you own it. Publish those records with your DNS provider, then use `resend_domain_verification` to ask Resend to check them.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				MarkdownDescription: "The domain ID.",
+				MarkdownDescription: "The Resend domain ID, a UUID. Use it with `terraform import` and wherever another resource needs the domain (`resend_domain_verification`, `resend_api_key`).",
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"name": schema.StringAttribute{
-				MarkdownDescription: "The domain name.",
+				MarkdownDescription: "The domain to send from, such as `updates.example.com`. Resend recommends a subdomain rather than the root domain. Changing it replaces the domain.",
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"region": schema.StringAttribute{
-				MarkdownDescription: "The region where the domain is hosted. Valid values: `us-east-1`, `eu-west-1`, `sa-east-1`, `ap-northeast-1`. Defaults to `us-east-1`.",
+				MarkdownDescription: "The region Resend sends the domain's email from. Valid values: `us-east-1`, `eu-west-1`, `sa-east-1`, `ap-northeast-1`. Defaults to `us-east-1`. Changing it replaces the domain.",
 				Optional:            true,
 				Computed:            true,
 				Default:             stringdefault.StaticString("us-east-1"),
@@ -93,7 +93,7 @@ func (r *domainResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				},
 			},
 			"custom_return_path": schema.StringAttribute{
-				MarkdownDescription: "The custom return path for the domain.",
+				MarkdownDescription: "The subdomain Resend uses for the Return-Path (bounce) address, such as `outbound`. Resend uses `send` when it is not set. It can only be set when the domain is created, so changing it replaces the domain.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
@@ -102,19 +102,19 @@ func (r *domainResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				},
 			},
 			"open_tracking": schema.BoolAttribute{
-				MarkdownDescription: "Whether open tracking is enabled.",
+				MarkdownDescription: "Whether Resend tracks email opens for this domain. Defaults to `false`.",
 				Optional:            true,
 				Computed:            true,
 				Default:             booldefault.StaticBool(false),
 			},
 			"click_tracking": schema.BoolAttribute{
-				MarkdownDescription: "Whether click tracking is enabled.",
+				MarkdownDescription: "Whether Resend tracks link clicks for this domain. Defaults to `false`.",
 				Optional:            true,
 				Computed:            true,
 				Default:             booldefault.StaticBool(false),
 			},
 			"tls": schema.StringAttribute{
-				MarkdownDescription: "The TLS setting. Valid values: `enforced`, `opportunistic`. Defaults to `opportunistic`.",
+				MarkdownDescription: "How Resend uses TLS when delivering mail. `opportunistic` tries a secure connection and falls back to sending unencrypted when the receiving server does not support TLS; `enforced` refuses to deliver without TLS. Valid values: `enforced`, `opportunistic`. Defaults to `opportunistic`.",
 				Optional:            true,
 				Computed:            true,
 				Default:             stringdefault.StaticString("opportunistic"),
@@ -123,44 +123,51 @@ func (r *domainResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				},
 			},
 			"status": schema.StringAttribute{
-				MarkdownDescription: "The verification status of the domain.",
+				MarkdownDescription: "The verification status of the domain: one of `not_started`, `pending`, `verified`, `partially_verified`, `partially_failed`, `failed` or `temporary_failure`.",
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"created_at": schema.StringAttribute{
-				MarkdownDescription: "The timestamp when the domain was created.",
+				MarkdownDescription: "When the domain was created, as reported by Resend.",
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"records": schema.ListNestedAttribute{
-				MarkdownDescription: "DNS records required for domain verification.",
+				MarkdownDescription: "The DNS records to publish so Resend can verify the domain. Resend generates the set when the domain is created, so it is only known after the first apply.",
 				Computed:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"record": schema.StringAttribute{
-							Computed: true,
+							MarkdownDescription: "What the record is for, as Resend labels it: `SPF`, `DKIM`, and, depending on the domain's settings, records such as `Tracking` or `Receiving`.",
+							Computed:            true,
 						},
 						"name": schema.StringAttribute{
-							Computed: true,
+							MarkdownDescription: "The record name relative to the root domain, such as `send` or `resend._domainkey` (`send.updates` for the subdomain `updates.example.com`). Some records, such as `Tracking`, are returned fully qualified.",
+							Computed:            true,
 						},
 						"type": schema.StringAttribute{
-							Computed: true,
+							MarkdownDescription: "The DNS record type, such as `MX`, `TXT` or `CNAME`.",
+							Computed:            true,
 						},
 						"ttl": schema.StringAttribute{
-							Computed: true,
+							MarkdownDescription: "The time to live Resend recommends. `Auto` means the DNS provider's default.",
+							Computed:            true,
 						},
 						"status": schema.StringAttribute{
-							Computed: true,
+							MarkdownDescription: "The verification status of this record: one of `not_started`, `pending`, `verified`, `failed` or `temporary_failure`.",
+							Computed:            true,
 						},
 						"value": schema.StringAttribute{
-							Computed: true,
+							MarkdownDescription: "The record content. Publish it exactly as returned: the SPF TXT value includes its surrounding quotes.",
+							Computed:            true,
 						},
 						"priority": schema.StringAttribute{
-							Computed: true,
+							MarkdownDescription: "The MX priority, as a string (for example `10`). Empty for record types that have no priority.",
+							Computed:            true,
 						},
 					},
 				},
@@ -358,6 +365,10 @@ func (r *domainResource) ImportState(ctx context.Context, req resource.ImportSta
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
 
+// objectValue is a variable so tests can force the object-construction error
+// path, which cannot occur while domainRecordAttrTypes matches the values.
+var objectValue = types.ObjectValue
+
 func flattenRecords(_ context.Context, records []resend.Record) (types.List, diag.Diagnostics) {
 	recordType := types.ObjectType{
 		AttrTypes: domainRecordAttrTypes(),
@@ -374,7 +385,7 @@ func flattenRecords(_ context.Context, records []resend.Record) (types.List, dia
 			priority = record.Priority.String()
 		}
 
-		recordObj, d := types.ObjectValue(domainRecordAttrTypes(), map[string]attr.Value{
+		recordObj, d := objectValue(domainRecordAttrTypes(), map[string]attr.Value{
 			"record":   types.StringValue(record.Record),
 			"name":     types.StringValue(record.Name),
 			"type":     types.StringValue(record.Type),

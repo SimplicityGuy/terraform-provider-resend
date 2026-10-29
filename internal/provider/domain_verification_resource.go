@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	resend "github.com/resend/resend-go/v3"
+	resend "github.com/resend/resend-go/v4"
 )
 
 var _ resource.Resource = &domainVerificationResource{}
@@ -33,17 +33,17 @@ func (r *domainVerificationResource) Metadata(_ context.Context, req resource.Me
 
 func (r *domainVerificationResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Triggers verification for a Resend domain. Creating this resource sends a verification request to Resend. The domain's DNS records must be configured before verification can succeed.",
+		MarkdownDescription: "Asks Resend to verify a domain's DNS records. Creating the resource sends one verification request and records the domain's status; it does not wait for verification to finish, and Resend keeps checking in the background. Publish the domain's `records` first (make this resource depend on your DNS records), or the check starts before the records exist. Destroying the resource only removes it from state: a verification can't be undone.",
 		Attributes: map[string]schema.Attribute{
 			"domain_id": schema.StringAttribute{
-				MarkdownDescription: "The ID of the domain to verify.",
+				MarkdownDescription: "The ID of the domain to verify, usually `resend_domain.<name>.id`. Changing it replaces the resource, which sends a new verification request.",
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"status": schema.StringAttribute{
-				MarkdownDescription: "The verification status of the domain after triggering verification.",
+				MarkdownDescription: "The domain's verification status, refreshed on every read: one of `not_started`, `pending`, `verified`, `partially_verified`, `partially_failed`, `failed` or `temporary_failure`.",
 				Computed:            true,
 			},
 		},

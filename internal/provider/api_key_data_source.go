@@ -6,7 +6,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	resend "github.com/resend/resend-go/v3"
+	resend "github.com/resend/resend-go/v4"
 )
 
 var _ datasource.DataSource = &apiKeyDataSource{}
@@ -32,18 +32,18 @@ func (d *apiKeyDataSource) Metadata(_ context.Context, req datasource.MetadataRe
 
 func (d *apiKeyDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Use this data source to read a Resend API key.",
+		MarkdownDescription: "Reads a Resend API key by ID. Resend never returns a key's token after creation, so this data source exposes only its metadata.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				MarkdownDescription: "The API key ID.",
+				MarkdownDescription: "The Resend API key ID, a UUID.",
 				Required:            true,
 			},
 			"name": schema.StringAttribute{
-				MarkdownDescription: "The name of the API key.",
+				MarkdownDescription: "The name of the API key, shown in the Resend dashboard.",
 				Computed:            true,
 			},
 			"created_at": schema.StringAttribute{
-				MarkdownDescription: "The timestamp when the API key was created.",
+				MarkdownDescription: "When the API key was created, as reported by Resend.",
 				Computed:            true,
 			},
 		},

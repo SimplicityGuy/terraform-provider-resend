@@ -1,9 +1,7 @@
 # CLAUDE.md
 
-## Code Style
-
-- All code comments must be written in English. Japanese is not allowed in comments.
-- Commit messages must be written in English.
+Agent guidance for this repository lives in [AGENTS.md](AGENTS.md). Read it first; it applies to
+Claude Code as well.
 
 <!-- bh:agf:start (managed by `bh hive init` — edit outside these markers; `-f` refreshes) -->
 ## AGF — Agentic Git Flow

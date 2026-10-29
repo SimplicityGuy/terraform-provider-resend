@@ -4,12 +4,11 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccDomainResource_basic(t *testing.T) {
-	domainName := fmt.Sprintf("tf-test-%s.example.com", acctest.RandStringFromCharSet(8, acctest.CharSetAlphaNum))
+	domainName := testAccDomainName(t)
 	resourceName := "resend_domain.test"
 
 	resource.Test(t, resource.TestCase{
@@ -32,7 +31,7 @@ func TestAccDomainResource_basic(t *testing.T) {
 }
 
 func TestAccDomainResource_update(t *testing.T) {
-	domainName := fmt.Sprintf("tf-test-%s.example.com", acctest.RandStringFromCharSet(8, acctest.CharSetAlphaNum))
+	domainName := testAccDomainName(t)
 	resourceName := "resend_domain.test"
 
 	resource.Test(t, resource.TestCase{
@@ -62,7 +61,7 @@ func TestAccDomainResource_update(t *testing.T) {
 }
 
 func TestAccDomainResource_region(t *testing.T) {
-	domainName := fmt.Sprintf("tf-test-%s.example.com", acctest.RandStringFromCharSet(8, acctest.CharSetAlphaNum))
+	domainName := testAccDomainName(t)
 	resourceName := "resend_domain.test"
 
 	resource.Test(t, resource.TestCase{
@@ -83,7 +82,7 @@ func TestAccDomainResource_region(t *testing.T) {
 }
 
 func TestAccDomainResource_import(t *testing.T) {
-	domainName := fmt.Sprintf("tf-test-%s.example.com", acctest.RandStringFromCharSet(8, acctest.CharSetAlphaNum))
+	domainName := testAccDomainName(t)
 	resourceName := "resend_domain.test"
 
 	resource.Test(t, resource.TestCase{

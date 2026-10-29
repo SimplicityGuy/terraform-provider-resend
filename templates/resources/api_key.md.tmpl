@@ -1,0 +1,42 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.RenderedProviderName}}"
+subcategory: ""
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Name}} ({{.Type}})
+
+{{ .Description | trimspace }}
+
+~> **The token is stored in state.** Anyone who can read your state can read `token`. Use
+an encrypted remote backend (or OpenTofu state encryption) and restrict who can read it.
+
+## Example Usage
+
+{{ tffile "examples/resources/resend_api_key/resource.tf" }}
+
+To rotate a key, replace it: `terraform apply -replace=resend_api_key.sending` (or
+`tofu apply -replace=resend_api_key.sending`) deletes the old key and creates a new key
+with a new token.
+
+{{ .SchemaMarkdown | trimspace }}
+
+## Import
+
+Import an API key by its Resend API key ID, not by its `re_...` token.
+
+In Terraform v1.5.0 and later, and OpenTofu v1.5.0 and later, use an
+[`import` block](https://developer.hashicorp.com/terraform/language/import):
+
+{{ tffile "examples/resources/resend_api_key/import-by-string-id.tf" }}
+
+Or use the `terraform import` (or `tofu import`) command:
+
+{{ codefile "shell" "examples/resources/resend_api_key/import.sh" }}
+
+~> **An imported key is replaced on the next apply.** Resend returns only a key's ID, name
+and creation time, so the token, `permission` and `domain_id` aren't filled in on import.
+Because changing `permission` or `domain_id` replaces the key, the next plan destroys the
+imported key and creates a new one with a new token. Only import a key you are ready to
+rotate.
