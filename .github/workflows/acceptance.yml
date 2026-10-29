@@ -81,6 +81,7 @@ jobs:
           CLI: ${{ matrix.cli }}
           CHANNEL: ${{ matrix.channel }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          RESEND_TEST_DOMAIN: ${{ vars.RESEND_TEST_DOMAIN }}
 
   # Removes tf-test- leftovers, including those of a failed or cancelled leg.
   # Skipped when the gate skipped the legs, so it never runs without the secret.
