@@ -4,12 +4,11 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccDomainVerificationResource_basic(t *testing.T) {
-	domainName := fmt.Sprintf("tf-test-%s.example.com", acctest.RandStringFromCharSet(8, acctest.CharSetAlphaNum))
+	domainName := testAccDomainName(t)
 	resourceName := "resend_domain_verification.test"
 
 	resource.Test(t, resource.TestCase{

@@ -44,6 +44,7 @@ export RESEND_API_KEY="re_..."
 just testacc
 ```
 
+- Domain tests create `tf-test-<random>.<RESEND_TEST_DOMAIN>`, so also set `RESEND_TEST_DOMAIN` to a parent domain that no other Resend account uses (Resend rejects a test domain under a domain another account has registered, such as `example.com`). Without it, the domain tests are skipped, not failed. In CI it comes from the `RESEND_TEST_DOMAIN` repository Actions variable.
 - Test resources are named with the `tf-test-` prefix plus a random suffix and are destroyed by each test. After a failed or interrupted run, remove leftovers with `just sweep`. The sweeper deletes only domains and API keys whose name starts with `tf-test-`; give the key you run with a different name.
 - Never print the key (no `set -x`, no `echo`), and keep it out of shell history and logs.
 
