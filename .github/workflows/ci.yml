@@ -3,8 +3,9 @@
 # live in the justfile and the tools in mise.toml; this workflow only installs
 # the pinned tools and calls the recipe.
 #
-# Secrets: no job here reads one. Secret-dependent jobs (the acceptance tests
-# that need RESEND_API_KEY) must run only on pushes to main and same-repo pull
+# Secrets: only the acceptance job reads one (RESEND_API_KEY), and only in the
+# env of the steps that run the tests and the sweeper. Secret-dependent jobs
+# must run only on pushes to main and same-repo pull
 # requests, never on fork or Dependabot pull requests (Dependabot's secret
 # store is deliberately empty; see .github/dependabot.yml). Gate such a job
 # with:
@@ -71,3 +72,39 @@ jobs:
             coverage.txt
           if-no-files-found: error
           retention-days: 30
+
+  # Runs the live acceptance suite against the dedicated Resend test account.
+  # The `if:` is the one documented in the header: never a fork or Dependabot PR.
+  acceptance:
+    name: acceptance
+    if: >-
+      github.event_name == 'push' ||
+      (github.event.pull_request.head.repo.full_name == github.repository &&
+       github.event.pull_request.user.login != 'dependabot[bot]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    # One run at a time against the shared account: the sweeper must not delete
+    # the resources of a run that is still in flight. Queued, never cancelled.
+    concurrency:
+      group: acceptance
+      cancel-in-progress: false
+    env:
+      MISE_TRUSTED_CONFIG_PATHS: ${{ github.workspace }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: jdx/mise-action@fc42bcc7ddbf51124c30f95a877a0c5168a3bfde # v5.2.1
+
+      - name: just testacc
+        run: just testacc
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+
+      # Removes tf-test- leftovers, including those of a failed or cancelled run.
+      - name: just sweep
+        if: ${{ always() }}
+        run: just sweep
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
