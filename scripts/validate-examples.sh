@@ -1,14 +1,25 @@
 #!/usr/bin/env bash
-# Validate every example configuration under examples/ with Terraform and
-# OpenTofu against a locally built provider.
+# Validate every example configuration under examples/ with each supported
+# Terraform and OpenTofu (the lowest and the highest version pinned in
+# mise.toml; see scripts/tf-cli.sh) against a locally built provider.
 #
-# The provider isn't on a registry yet, so a throwaway CLI config points both
+# The provider isn't on a registry yet, so a throwaway CLI config points the
 # CLIs at the local build with dev_overrides. Examples that declare no
 # required_providers block (most resource and data source snippets) get one for
-# SimplicityGuy/resend, as a real root module would. Examples that use other
-# providers (the Cloudflare DNS wiring) download them from the registry, so
-# this needs network access.
+# SimplicityGuy/resend, as a real root module would.
+#
+# By default this is offline, so `just check` can run it anywhere: an example
+# that also uses another provider (the Cloudflare DNS wiring) can't be
+# validated without that provider's schema, so it is skipped with a notice.
+# `--online` validates those too, downloading the providers from the registry.
 set -euo pipefail
+
+online=0
+case "${1:-}" in
+  "") ;;
+  --online) online=1 ;;
+  *) echo "usage: ${0##*/} [--online]" >&2; exit 2 ;;
+esac
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 work="$(mktemp -d)"
@@ -46,15 +57,43 @@ export TF_CLI_CONFIG_FILE="$work/cli.tfrc"
 export TOFU_CLI_CONFIG_FILE="$work/cli.tfrc"
 export TF_IN_AUTOMATION=1 CHECKPOINT_DISABLE=1
 
-terraform fmt -check -recursive -diff "$root/examples"
+"$("$root/scripts/tf-cli.sh" path terraform latest)" fmt -check -recursive -diff "$root/examples"
 
-mapfile -t dirs < <(cd "$root" && find examples -name '*.tf' -exec dirname {} \; | sort -u)
-failed=0
+# Every pinned version of each CLI that is the lowest or the highest, once.
+cases=()
 for cli in terraform tofu; do
+  oldest="$("$root/scripts/tf-cli.sh" version "$cli" oldest)"
+  latest="$("$root/scripts/tf-cli.sh" version "$cli" latest)"
+  cases+=("$cli $oldest")
+  [ "$oldest" = "$latest" ] || cases+=("$cli $latest")
+done
+
+dirs=()
+while IFS= read -r dir; do dirs+=("$dir"); done < <(cd "$root" && find examples -name '*.tf' -exec dirname {} \; | sort -u)
+
+failed=0
+for entry in "${cases[@]}"; do
+  read -r cli version <<<"$entry"
+  bin="$("$root/scripts/tf-cli.sh" path "$cli" "$version")"
   for dir in "${dirs[@]}"; do
-    module="$work/$cli/$dir"
+    label="$cli $version $dir"
+    if [ "$online" -eq 0 ] && grep -hE '^[[:space:]]*source[[:space:]]*=' "$root/$dir"/*.tf | grep -qvF '"SimplicityGuy/resend"'; then
+      echo "skip  $label (needs another provider's schema; run 'just validate-examples-online')"
+      continue
+    fi
+    module="$work/$cli-$version/$dir"
     mkdir -p "$module"
     cp "$root/$dir"/*.tf "$module/"
+    # `import` blocks (documented as Terraform and OpenTofu 1.5+) are a language
+    # feature, not the provider's: Terraform 1.0 rejects them whatever the provider
+    # does. Leave just those files out for Terraform before 1.5, as the docs do.
+    if [ "$cli" = terraform ] && [ "$(printf '%s\n1.5.0\n' "$version" | sort -V | head -n 1)" != 1.5.0 ]; then
+      { grep -lE '^import[[:space:]]*\{' "$module"/*.tf || true; } | xargs -r rm -f --
+      if [ -z "$(ls "$module"/*.tf 2>/dev/null)" ]; then
+        echo "skip  $label (only an import block, which needs 1.5+)"
+        continue
+      fi
+    fi
     if ! grep -qs required_providers "$module"/*.tf; then
       cat >"$module/zz_required_providers.tf" <<'TF'
 terraform {
@@ -66,11 +105,11 @@ terraform {
 }
 TF
     fi
-    if "$cli" -chdir="$module" init -backend=false -input=false >"$module.init.log" 2>&1 &&
-      "$cli" -chdir="$module" validate -no-color >"$module.validate.log" 2>&1; then
-      echo "ok    $cli $dir"
+    if "$bin" -chdir="$module" init -backend=false -input=false >"$module.init.log" 2>&1 &&
+      "$bin" -chdir="$module" validate -no-color >"$module.validate.log" 2>&1; then
+      echo "ok    $label"
     else
-      echo "FAIL  $cli $dir"
+      echo "FAIL  $label"
       cat "$module.init.log" "$module.validate.log" 2>/dev/null || true
       failed=1
     fi

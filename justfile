@@ -45,9 +45,9 @@ lock:
     mise lock --platform linux-x64,macos-arm64
 
 # Offline: no Resend credentials and no API calls. The acceptance suite is `just testacc`.
-# The authoritative pre-merge gate: hooks (format, golangci-lint, actionlint, zizmor), go.mod tidiness, vet, gosec, unit tests, build, release config, secret scan, registry docs drift.
+# The authoritative pre-merge gate: hooks (format, golangci-lint, actionlint, zizmor), go.mod tidiness, vet, gosec, unit tests, build, release config, secret scan, registry docs drift, the supported-versions tables, and the examples under each pinned Terraform and OpenTofu.
 [group('validate')]
-check: lint tidy-check vet sec test build release-check secret-scan docs-check
+check: lint tidy-check vet sec test build release-check secret-scan docs-check versions-check validate-examples
 
 # Run every pre-commit hook over all files (gofmt/goimports, golangci-lint, actionlint, zizmor, file hygiene, gitleaks on staged changes).
 [group('validate')]
@@ -104,10 +104,18 @@ coverage:
     go tool cover -func=coverage.out
 
 # Online and credentialed, so not part of `check`: it creates and destroys real Resend resources.
-# Run the acceptance suite against the live Resend API (needs RESEND_API_KEY).
+# The CLI and version come from mise.toml (scripts/tf-cli.sh): `latest` is the highest pinned version of that CLI, `oldest` the lowest, or name one exactly.
+# TF_ACC_TERRAFORM_PATH points terraform-plugin-testing at that binary. It addresses the provider as registry.terraform.io/hashicorp/resend, which OpenTofu would not match (its registry is registry.opentofu.org), hence TF_ACC_PROVIDER_HOST.
+# Run the acceptance suite against the live Resend API under a CLI: `just testacc`, `just testacc tofu`, `just testacc terraform oldest` (needs RESEND_API_KEY).
 [group('validate')]
-testacc:
+testacc cli="terraform" channel="latest":
+    #!/usr/bin/env bash
+    set -euo pipefail
     : "${RESEND_API_KEY:?testacc needs RESEND_API_KEY for a Resend account it may create and delete resources in}"
+    path="$(scripts/tf-cli.sh path {{ quote(cli) }} {{ quote(channel) }})"
+    export TF_ACC_TERRAFORM_PATH="$path"
+    if [ {{ quote(cli) }} = tofu ]; then export TF_ACC_PROVIDER_HOST=registry.opentofu.org; else unset TF_ACC_PROVIDER_HOST; fi
+    echo "acceptance suite under $("$path" version | head -n 1) ($path)"
     TF_ACC=1 go test -v -count=1 -parallel=4 -timeout 120m ./internal/provider/
 
 # Online and credentialed. Deletes only objects whose name starts with `tf-test-`, the prefix every acceptance test uses.
@@ -156,12 +164,23 @@ docs-check: docs
     tfplugindocs validate --provider-name resend
     @if [ -n "$(git status --porcelain -- docs)" ]; then git status --short -- docs; git diff --stat -- docs; echo "docs/ is stale: run 'just docs' and commit the result" >&2; exit 1; fi
 
-# Online (downloads the Cloudflare provider), so not part of `check`. Builds the
-# provider and points both CLIs at it with dev_overrides.
-# Run `terraform validate` and `tofu validate` over every example in examples/.
+# Offline: it builds the provider and points the CLIs at it with dev_overrides, so no registry is involved. An example that needs another provider's schema (the Cloudflare one) is skipped; `validate-examples-online` covers it.
+# Run `terraform validate` and `tofu validate` over the examples in examples/, under the oldest and the latest pinned version of each CLI.
 [group('docs')]
 validate-examples:
     scripts/validate-examples.sh
+
+# Online: downloads the Cloudflare provider from the registries, so it is not part of `check`.
+# Like `validate-examples`, but also validates the examples that use other providers.
+[group('docs')]
+validate-examples-online:
+    scripts/validate-examples.sh --online
+
+# Fails when README.md or templates/index.md.tmpl (the source of docs/index.md) does not name a version pinned in mise.toml, so the supported-versions tables cannot drift from the pins.
+# Fail if a Terraform or OpenTofu version pinned in mise.toml is missing from the README or the docs.
+[group('docs')]
+versions-check:
+    scripts/versions-check.sh
 
 # Writes nothing: the next version, tag and changelog entry Commitizen would
 # produce from .cz.toml. --yes answers the "first tag?" prompt so it runs
