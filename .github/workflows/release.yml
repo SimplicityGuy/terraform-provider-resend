@@ -117,6 +117,19 @@ jobs:
 
           echo "fingerprint=${fingerprint}" >> "$GITHUB_OUTPUT"
 
+      # This version's CHANGELOG.md section (the highlights `just bump` inserted
+      # plus the generated entries) becomes the release notes. It needs no
+      # secret. The file is written to RUNNER_TEMP, outside the checked-out
+      # tree, so GoReleaser's dirty-tree check does not see it. A missing or
+      # empty section fails the job before anything is published.
+      - name: Extract the release notes
+        id: notes
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          scripts/changelog-section.sh "$TAG" > "${RUNNER_TEMP}/release-notes.md"
+          echo "path=${RUNNER_TEMP}/release-notes.md" >> "$GITHUB_OUTPUT"
+
       - name: GoReleaser
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -125,7 +138,8 @@ jobs:
           GORELEASER_CURRENT_TAG: ${{ github.ref_name }}
           GPG_FINGERPRINT: ${{ steps.gpg.outputs.fingerprint }}
           RESEND_GO_VERSION: ${{ steps.resend-go.outputs.version }}
-        run: goreleaser release --clean
+          RELEASE_NOTES: ${{ steps.notes.outputs.path }}
+        run: goreleaser release --clean --release-notes "$RELEASE_NOTES"
 
       - name: Remove the signing key
         if: ${{ always() }}

@@ -68,8 +68,12 @@ release:
       name_template: "{{ .ProjectName }}_{{ .Version }}_manifest.json"
   # RESEND_GO_VERSION must be set by the release workflow (the resend-go
   # module version this build links against; release.yml reads it from go.mod).
+  # The header is published above the notes passed with --release-notes.
   header: |
     Built with resend-go {{ .Env.RESEND_GO_VERSION }}.
 
-changelog:
-  disable: true
+# The release notes are this version's CHANGELOG.md section (highlights plus the
+# Commitizen entries), which release.yml passes with --release-notes. The
+# changelog pipe must stay enabled for that flag to be read: with
+# `disable: true` GoReleaser skips the pipe and ignores the notes file. When the
+# flag is given the pipe only loads the file and generates nothing of its own.

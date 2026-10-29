@@ -129,21 +129,33 @@ Each release bead's acceptance criteria apply to every release:
 1. `just bump-preview` on `main` proposes exactly the planned version (`0.1.0` for the first
    release). If it doesn't, the merged commits don't match the plan; stop and fix the plan or the
    commits.
-2. `just bump` writes the CHANGELOG entry and the annotated tag. Check the CHANGELOG lists only
-   this release's beads.
-3. Pushing the tag runs `release.yml`, which publishes the signed assets. The release notes record
-   the resend-go version.
-4. Confirm both registry.terraform.io and registry.opentofu.org list the version, and that
+2. Commitizen lists only `feat`, `fix` and `refactor` commits, so a rename, a dependency upgrade or
+   a signing change would not reach the CHANGELOG or the release notes. Each release therefore has
+   hand-written highlights in `.release-notes/next.md`, reviewed through a normal bead and merged
+   before the bump. Check them against what `main` ships: the provider address, how to migrate, the
+   resend-go version in `go.mod`, the supported Terraform and OpenTofu versions in `mise.toml`, and
+   anything users must do. Do not claim coverage or features that are not on `main`.
+   `just bump-preview` prints the section as it will be written, highlights included, and exits
+   non-zero while the highlights file is empty.
+3. `just bump` runs Commitizen without committing, inserts the highlights under the new version
+   heading above the generated entries, empties `.release-notes/next.md`, then makes the bump
+   commit (`bump: version A → B`) and the annotated `vX.Y.Z` tag. It refuses to run while the
+   highlights are empty or the working tree is dirty, and it never pushes. Check the CHANGELOG
+   lists only this release's beads.
+4. Pushing the tag runs `release.yml`, which publishes the signed assets. The workflow copies the
+   tag's CHANGELOG section (highlights included) into the GitHub release notes, under a header
+   that records the resend-go version. It fails before publishing if the tag has no section.
+5. Confirm both registry.terraform.io and registry.opentofu.org list the version, and that
    `terraform init` and `tofu init` (with `OPENTOFU_ENFORCE_GPG_VALIDATION=true`) install it signed
    by the published key.
 
 For the release candidates and v1.0.0:
 
 - **v1.0.0-rc.1:** set `major_version_zero = false`, then
-  `cz bump --prerelease rc --increment MAJOR`.
-- **v1.0.0-rc.N:** `cz bump --prerelease rc` after merging the fix.
-- **v1.0.0:** `cz bump` from the last RC, on the RC's commit. The CHANGELOG folds the RC entries
-  into v1.0.0.
+  `just bump --prerelease rc --increment MAJOR`.
+- **v1.0.0-rc.N:** `just bump --prerelease rc` after merging the fix.
+- **v1.0.0:** `just bump` from the last RC, on the RC's commit. The CHANGELOG folds the RC entries
+  into v1.0.0; write the v1.0.0 highlights to cover the release candidates too.
 
 ## Upgrading from y0n0zawa/resend
 

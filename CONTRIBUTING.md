@@ -83,11 +83,13 @@ Use [Conventional Commits](https://www.conventionalcommits.org): `feat(domain): 
 Releases are cut from `main` by a maintainer, with independent SemVer starting at v0.1.0. The plan for each release is in [docs/release-plan.md](docs/release-plan.md).
 
 ```bash
-just bump-preview   # show the next version and changelog entry; writes nothing
+just bump-preview   # show the next version and CHANGELOG section, highlights included; writes nothing
 just bump           # update CHANGELOG.md, commit, create the annotated vX.Y.Z tag (local only)
 ```
 
-Check that `bump-preview` proposes the version the plan expects. After `just bump`, review the commit and tag, then push the tag deliberately; pushing a `v*` tag runs the release workflow, which publishes the signed assets.
+Commitizen lists only `feat`, `fix` and `refactor` commits, so every release also needs hand-written highlights in `.release-notes/next.md`: what a user must know to upgrade or adopt it (a new address, a migration step, a dependency or supported-version change, signing). Write them in a bead, review them like code, and merge them before the bump; keep them to what `main` ships. `just bump` inserts them under the new version heading in `CHANGELOG.md`, empties the file, and refuses to run while it is empty. The release workflow publishes that CHANGELOG section as the GitHub release notes.
+
+Check that `bump-preview` proposes the version the plan expects and shows the highlights as you want them. After `just bump`, review the commit and tag, then push the tag deliberately; pushing a `v*` tag runs the release workflow, which publishes the signed assets and fails if the tag has no CHANGELOG section.
 
 ### Release checks
 
