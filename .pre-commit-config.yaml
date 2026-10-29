@@ -25,6 +25,15 @@ repos:
       - id: mixed-line-ending
       - id: trailing-whitespace
 
+  # Security audit of the workflows, dependabot.yml and this file. Offline
+  # audits only, so it runs the same in a commit and in CI whether or not a
+  # GitHub token is exported.
+  - repo: https://github.com/zizmorcore/zizmor-pre-commit
+    rev: c92afdf2c6ca336aaa8f39e2bd8d48f62dbd8e1f  # frozen: v1.31.1
+    hooks:
+      - id: zizmor
+        args: [--no-progress, --offline]
+
   - repo: local
     hooks:
       # gofmt and goimports, as configured in .golangci.yml. Reports a diff

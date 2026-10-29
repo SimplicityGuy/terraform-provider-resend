@@ -45,11 +45,11 @@ lock:
     mise lock --platform linux-x64,macos-arm64
 
 # Offline: no Resend credentials and no API calls. The acceptance suite is `just testacc`.
-# The authoritative pre-merge gate: hooks (format, golangci-lint, actionlint), go.mod tidiness, vet, gosec, unit tests, build, release config, secret scan, registry docs drift.
+# The authoritative pre-merge gate: hooks (format, golangci-lint, actionlint, zizmor), go.mod tidiness, vet, gosec, unit tests, build, release config, secret scan, registry docs drift.
 [group('validate')]
 check: lint tidy-check vet sec test build release-check secret-scan docs-check
 
-# Run every pre-commit hook over all files (gofmt/goimports, golangci-lint, actionlint, file hygiene, gitleaks on staged changes).
+# Run every pre-commit hook over all files (gofmt/goimports, golangci-lint, actionlint, zizmor, file hygiene, gitleaks on staged changes).
 [group('validate')]
 lint:
     pre-commit run --all-files --show-diff-on-failure

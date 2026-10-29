@@ -65,7 +65,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the workflow and [AGENTS.md](AGENTS.m
 
 ### Validation
 
-`just check` runs the pre-commit hooks (formatting, golangci-lint, actionlint, file hygiene), `go mod tidy -diff`, `go vet`, gosec, the unit tests, the build, the GoReleaser config check and a gitleaks scan of the history. Related recipes: `just test`, `just coverage`, `just vulncheck` and `just docs-check`. Acceptance tests (`just testacc`) call the live Resend API and need `RESEND_API_KEY`.
+`just check` runs the pre-commit hooks (formatting, golangci-lint, actionlint, zizmor, file hygiene), `go mod tidy -diff`, `go vet`, gosec, the unit tests, the build, the GoReleaser config check and a gitleaks scan of the history. Related recipes: `just test`, `just coverage`, `just vulncheck` and `just docs-check`. Acceptance tests (`just testacc`) call the live Resend API and need `RESEND_API_KEY`.
 
 ### Build
 
