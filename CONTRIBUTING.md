@@ -88,3 +88,55 @@ just bump           # update CHANGELOG.md, commit, create the annotated vX.Y.Z t
 ```
 
 Check that `bump-preview` proposes the version the plan expects. After `just bump`, review the commit and tag, then push the tag deliberately; pushing a `v*` tag runs the release workflow, which publishes the signed assets.
+
+### Release checks
+
+After the Release workflow finishes, check the published assets before announcing the release. The
+asset names are `terraform-provider-resend_X.Y.Z_*`.
+
+1. Verify the signature, then the checksums, in an empty directory:
+
+   ```bash
+   gh release download vX.Y.Z --repo SimplicityGuy/terraform-provider-resend \
+     --pattern '*_SHA256SUMS' --pattern '*_SHA256SUMS.sig' --pattern '*.zip' --pattern '*_manifest.json'
+   gpg --import release-signing-key.asc
+   gpg --verify terraform-provider-resend_X.Y.Z_SHA256SUMS.sig terraform-provider-resend_X.Y.Z_SHA256SUMS
+   sha256sum -c terraform-provider-resend_X.Y.Z_SHA256SUMS   # shasum -a 256 -c on macOS
+   ```
+
+   `gpg --verify` must report a good signature by `30D2732FD215D0089C27FCCB9F85682D8BB841F1`.
+2. Once both registries have ingested the release, run `terraform init` and `tofu init` against a
+   configuration that requires the provider. Set `OPENTOFU_ENFORCE_GPG_VALIDATION=true` for
+   `tofu init` so OpenTofu refuses an unsigned or wrongly signed provider instead of warning. Both
+   commands must report the signing key ID (`9F85682D8BB841F1`) in their output.
+
+### Key rotation and revocation
+
+The release key is RSA 4096 (the registries reject ECC keys) and expires on 2028-10-28. The private
+key lives only in the operator's 1Password, the offline backup and the `release` environment
+secrets (`GPG_PRIVATE_KEY`, `PASSPHRASE`; only `v*` tags can deploy to that environment). The
+operator keeps the revocation certificate offline.
+
+To rotate the key, for a planned replacement or before it expires (start by 2028-07):
+
+1. Generate a new RSA 4096 key and a revocation certificate for it. Store both offline.
+2. Reseal `GPG_PRIVATE_KEY` and `PASSPHRASE` into the `release` environment with `scripts/seal github`
+   in the infra repository, then apply it.
+3. Replace the public key in the Terraform Registry and the OpenTofu Registry (add the new key
+   there; the registries verify each release against the keys registered for the namespace).
+4. Replace `release-signing-key.asc`, and update the fingerprint, key ID and expiry in `README.md`,
+   `SECURITY.md` and this file.
+5. Cut the next release, run the release checks above, and keep the old public key available so
+   earlier releases still verify.
+
+To extend the key's expiry instead, change it with `gpg --edit-key`, re-export the public key,
+update the expiry date here and in `SECURITY.md`, and update the registries' copy.
+
+If the key is compromised or the private key is lost:
+
+1. Revoke the key now: import the offline revocation certificate, export the revoked public key and
+   commit it as `release-signing-key.asc`. Upload it to both registries.
+2. Remove the old secrets from the `release` environment and rotate to a new key as above.
+3. Notify users: publish a security advisory and a note in `SECURITY.md` and the README giving the
+   revoked fingerprint, the new fingerprint, the first release signed with the new key, and which
+   releases to re-verify or treat as suspect.
