@@ -1,0 +1,73 @@
+---
+# CI: runs the same `just check` a developer runs (repo standard C2). The gates
+# live in the justfile and the tools in mise.toml; this workflow only installs
+# the pinned tools and calls the recipe.
+#
+# Secrets: no job here reads one. Secret-dependent jobs (the acceptance tests
+# that need RESEND_API_KEY) must run only on pushes to main and same-repo pull
+# requests, never on fork or Dependabot pull requests (Dependabot's secret
+# store is deliberately empty; see .github/dependabot.yml). Gate such a job
+# with:
+#
+#   if: >-
+#     github.event_name == 'push' ||
+#     (github.event.pull_request.head.repo.full_name == github.repository &&
+#      github.event.pull_request.user.login != 'dependabot[bot]')
+#
+# The PR author is checked rather than github.actor, because a maintainer
+# re-running a Dependabot PR's checks becomes the actor.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+# A new push to a pull request cancels its previous run; runs on main finish.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  check:
+    name: check
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      MISE_TRUSTED_CONFIG_PATHS: ${{ github.workspace }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # `just secret-scan` scans the full history.
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: jdx/mise-action@fc42bcc7ddbf51124c30f95a877a0c5168a3bfde # v5.2.1
+
+      # Includes `just build`, and `just test`, which writes coverage.out and
+      # fails below 100% statement coverage.
+      - name: just check
+        run: just check
+
+      - name: Coverage summary
+        if: ${{ !cancelled() && hashFiles('coverage.out') != '' }}
+        run: mise exec -- go tool cover -func=coverage.out > coverage.txt
+
+      - name: Upload coverage
+        if: ${{ !cancelled() && hashFiles('coverage.out') != '' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: coverage
+          path: |
+            coverage.out
+            coverage.txt
+          if-no-files-found: error
+          retention-days: 30
