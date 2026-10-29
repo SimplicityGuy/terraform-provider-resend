@@ -13,6 +13,9 @@ Tools are pinned in `mise.toml`; `just --list` shows every recipe.
 - `just docs`, `just docs-check`: regenerate and verify the registry docs. Never hand-edit `docs/`.
 - `just testacc`: acceptance tests against the live Resend API. Needs `RESEND_API_KEY` for a
   dedicated test account; never run it against production.
+  `just testacc tofu` or `just testacc terraform oldest` picks the CLI and version.
+- Supported Terraform and OpenTofu versions are declared only in `mise.toml`; `just versions-check`
+  keeps the README and docs in step, `just validate-examples` validates the examples under them.
 - `just bump-preview`, `just bump`: release flow (maintainers only; see CONTRIBUTING.md).
 - Do not run `just setup` inside a bead worktree: worktrees share the main clone's git hooks.
 
