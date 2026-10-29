@@ -34,17 +34,20 @@ Write tests first where you can. Acceptance tests live next to the unit tests in
 
 ## Acceptance tests
 
-Acceptance tests create and delete real domains and API keys through the Resend API.
+Acceptance tests create and delete real domains and API keys through the Resend API. They cover every resource (`resend_domain`, `resend_api_key`, `resend_domain_verification`) and data source (`resend_domain`, `resend_api_key`) the provider ships.
 
-- Use your own **dedicated test Resend account**. Never run them against a production account.
-- Create an API key in that account and run:
+- Use a **dedicated TEST Resend account** and a `full_access` API key created in it. Never use a production account or a production key: the suite creates and deletes real objects.
+- Export the key and run the suite (without `TF_ACC` and `RESEND_API_KEY`, `just testacc` refuses to start; `just test` never runs it):
 
 ```bash
 export RESEND_API_KEY="re_..."
 just testacc
 ```
 
-Test resources use the `tf-test-` name prefix so the sweepers can remove leftovers.
+- Test resources are named with the `tf-test-` prefix plus a random suffix and are destroyed by each test. After a failed or interrupted run, remove leftovers with `just sweep`. The sweeper deletes only domains and API keys whose name starts with `tf-test-`; give the key you run with a different name.
+- Never print the key (no `set -x`, no `echo`), and keep it out of shell history and logs.
+
+CI runs `just testacc` (then `just sweep`) on pushes to `main` and on pull requests from this repository, using the `RESEND_API_KEY` repository secret. It never runs on fork or Dependabot pull requests, which receive no secrets, and runs are serialized because they share one account.
 
 ## Terraform and OpenTofu
 

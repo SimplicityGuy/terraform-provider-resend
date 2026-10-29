@@ -110,6 +110,13 @@ testacc:
     : "${RESEND_API_KEY:?testacc needs RESEND_API_KEY for a Resend account it may create and delete resources in}"
     TF_ACC=1 go test -v -count=1 -parallel=4 -timeout 120m ./internal/provider/
 
+# Online and credentialed. Deletes only objects whose name starts with `tf-test-`, the prefix every acceptance test uses.
+# Remove leftover acceptance-test domains and API keys from the Resend account (needs RESEND_API_KEY).
+[group('validate')]
+sweep:
+    : "${RESEND_API_KEY:?sweep needs RESEND_API_KEY for the Resend test account to clean up}"
+    go test -v -count=1 -timeout 30m ./internal/provider/ -run '^$' -sweep=all
+
 # Scan the full git history for secrets.
 [group('validate')]
 secret-scan:
