@@ -115,7 +115,7 @@ curl -fsSLO "$base/terraform-provider-resend_X.Y.Z_SHA256SUMS.sig"
 curl -fsSLO "$base/terraform-provider-resend_X.Y.Z_linux_amd64.zip"
 
 gpg --verify terraform-provider-resend_X.Y.Z_SHA256SUMS.sig terraform-provider-resend_X.Y.Z_SHA256SUMS
-sha256sum --ignore-missing -c terraform-provider-resend_X.Y.Z_SHA256SUMS   # shasum -a 256 -c on macOS
+sha256sum --ignore-missing -c terraform-provider-resend_X.Y.Z_SHA256SUMS   # macOS: shasum -a 256 --ignore-missing -c <file>
 ```
 
 `gpg --verify` must report a good signature from `SimplicityGuy Release Signing` made by the key

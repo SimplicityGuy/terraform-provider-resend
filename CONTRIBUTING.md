@@ -101,7 +101,7 @@ asset names are `terraform-provider-resend_X.Y.Z_*`.
      --pattern '*_SHA256SUMS' --pattern '*_SHA256SUMS.sig' --pattern '*.zip' --pattern '*_manifest.json'
    gpg --import release-signing-key.asc
    gpg --verify terraform-provider-resend_X.Y.Z_SHA256SUMS.sig terraform-provider-resend_X.Y.Z_SHA256SUMS
-   sha256sum -c terraform-provider-resend_X.Y.Z_SHA256SUMS   # shasum -a 256 -c on macOS
+   sha256sum --ignore-missing -c terraform-provider-resend_X.Y.Z_SHA256SUMS   # macOS: shasum -a 256 --ignore-missing -c <file>
    ```
 
    `gpg --verify` must report a good signature by `30D2732FD215D0089C27FCCB9F85682D8BB841F1`.
