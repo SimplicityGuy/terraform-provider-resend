@@ -16,7 +16,7 @@ This installs the pinned tools, downloads the Go modules and installs the pre-co
 
 `just check` is the pre-merge gate and must pass before a change is reviewed. It runs:
 
-- the pre-commit hooks (gofmt/goimports, golangci-lint, actionlint, file hygiene, gitleaks on staged changes)
+- the pre-commit hooks (gofmt/goimports, golangci-lint, actionlint, zizmor, file hygiene, gitleaks on staged changes)
 - `go mod tidy -diff`, so `go.mod` and `go.sum` match what `go mod tidy` produces
 - `go vet`
 - gosec

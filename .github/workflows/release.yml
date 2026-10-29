@@ -1,38 +1,134 @@
-# Release workflow for publishing Terraform provider binaries
+---
+# Release: build the provider with GoReleaser, sign SHA256SUMS with the release
+# GPG key, and publish the GitHub release the Terraform and OpenTofu registries
+# ingest. It runs only for an annotated v* tag (pushed by `just bump`, or the
+# tag a manual dispatch is started from); nothing publishes on a branch push.
+#
+# Key material: GPG_PRIVATE_KEY and PASSPHRASE are secrets of the `release`
+# environment, which only v* tags can deploy to. Only the "Import the signing
+# key" step receives them. It pipes the armored key into `gpg --batch --import`
+# over stdin and presets the passphrase in gpg-agent, so neither secret is
+# written to the workspace or passed to GoReleaser: GoReleaser's gpg call signs
+# through the agent, which already holds the unlocked key. No third-party action
+# handles either secret.
 name: Release
 
 on:
   push:
-    tags:
-      - "v*"
+    tags: ["v*"]
+  workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
 
 jobs:
-  goreleaser:
-    name: GoReleaser
+  release:
+    name: release
+    if: ${{ startsWith(github.ref, 'refs/tags/v') }}
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: release
+    permissions:
+      contents: write # create the GitHub release and upload its assets
+    env:
+      MISE_TRUSTED_CONFIG_PATHS: ${{ github.workspace }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          # GoReleaser reads the tag and the commit timestamp from history.
           fetch-depth: 0
+          persist-credentials: false
 
-      - uses: actions/setup-go@v6
-        with:
-          go-version: "1.24"
-
-      - name: Import GPG key
-        uses: crazy-max/ghaction-import-gpg@v6
-        id: import_gpg
-        with:
-          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
-          passphrase: ${{ secrets.PASSPHRASE }}
-
-      - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v7
-        with:
-          args: release --clean
+      # Commitizen writes annotated tags; a lightweight tag was not cut by
+      # `just bump`. Asked of the API, because the checkout's local tag ref is
+      # not guaranteed to keep the tag object.
+      - name: Require an annotated tag
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GPG_FINGERPRINT: ${{ steps.import_gpg.outputs.fingerprint }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          type=$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${GITHUB_REF_NAME}" --jq .object.type)
+          if [ "$type" != "tag" ]; then
+            echo "::error::${GITHUB_REF_NAME} is not an annotated tag (object type: ${type}); cut releases with 'just bump'"
+            exit 1
+          fi
+
+      # Only the tools the release needs. No cache: a release must not restore
+      # state another workflow could have written.
+      - uses: jdx/mise-action@fc42bcc7ddbf51124c30f95a877a0c5168a3bfde # v5.2.1
+        with:
+          install_args: go goreleaser
+          cache: false
+
+      # .goreleaser.yml's release header records the resend-go version the
+      # provider was built with. Read from go.mod, whatever the major version.
+      - name: Read the resend-go version
+        id: resend-go
+        run: |
+          version=$(go mod edit -json | jq -r '[.Require[] | select(.Path | test("^github\\.com/resend/resend-go(/v[0-9]+)?$")) | .Version] | if length == 1 then .[0] else empty end')
+          if [ -z "$version" ]; then
+            echo "::error::go.mod must require exactly one github.com/resend/resend-go module"
+            exit 1
+          fi
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+
+      # The key lands in ~/.gnupg (outside the workspace) and is removed at the
+      # end of the job. The registries reject ECC keys, so a non-RSA key fails
+      # here instead of after publishing.
+      - name: Import the signing key
+        id: gpg
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          PASSPHRASE: ${{ secrets.PASSPHRASE }}
+        run: |
+          umask 077
+          mkdir -p ~/.gnupg
+          echo "allow-preset-passphrase" >> ~/.gnupg/gpg-agent.conf
+          gpgconf --kill gpg-agent
+
+          printf '%s\n' "$GPG_PRIVATE_KEY" | gpg --batch --import
+
+          keys=$(gpg --batch --with-colons --with-keygrip --list-secret-keys)
+          if [ "$(awk -F: '$1 == "sec"' <<<"$keys" | wc -l)" -ne 1 ]; then
+            echo "::error::GPG_PRIVATE_KEY must hold exactly one secret key"
+            exit 1
+          fi
+          if [ "$(awk -F: '$1 == "sec" { print $4 }' <<<"$keys")" != "1" ]; then
+            echo "::error::the release key must be RSA; the Terraform Registry rejects ECC keys"
+            exit 1
+          fi
+          fingerprint=$(awk -F: '$1 == "fpr" { print $10; exit }' <<<"$keys")
+
+          # gpg-preset-passphrase reads the passphrase from stdin.
+          preset="$(gpgconf --list-dirs libexecdir)/gpg-preset-passphrase"
+          while read -r keygrip; do
+            printf '%s' "$PASSPHRASE" | "$preset" --preset "$keygrip"
+          done < <(awk -F: '$1 == "grp" { print $10 }' <<<"$keys")
+
+          # Fail now, not inside GoReleaser, if the agent cannot sign unattended.
+          echo "preset check" | gpg --batch --pinentry-mode error --local-user "$fingerprint" --detach-sign > /dev/null
+
+          echo "fingerprint=${fingerprint}" >> "$GITHUB_OUTPUT"
+
+      - name: GoReleaser
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          # Release the tag that triggered the run, even if another tag points
+          # at the same commit.
+          GORELEASER_CURRENT_TAG: ${{ github.ref_name }}
+          GPG_FINGERPRINT: ${{ steps.gpg.outputs.fingerprint }}
+          RESEND_GO_VERSION: ${{ steps.resend-go.outputs.version }}
+        run: goreleaser release --clean
+
+      - name: Remove the signing key
+        if: ${{ always() }}
+        run: |
+          gpgconf --kill gpg-agent
+          rm -rf ~/.gnupg
