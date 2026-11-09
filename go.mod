@@ -8,7 +8,7 @@ require (
 	github.com/hashicorp/terraform-plugin-go v0.31.0
 	github.com/hashicorp/terraform-plugin-log v0.11.0
 	github.com/hashicorp/terraform-plugin-testing v1.16.0
-	github.com/resend/resend-go/v4 v4.9.1
+	github.com/resend/resend-go/v4 v4.11.0
 )
 
 require (
